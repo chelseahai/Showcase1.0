@@ -6,12 +6,12 @@
   <title>Grasshopper Points — Floating Garment</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; overflow: hidden; background: #000; }
+    body { margin: 0; font-family: system-ui, sans-serif; overflow: hidden; background: #fff; }
     #ui {
       position: fixed;
       top: 0; left: 0; right: 0;
       padding: 0.75rem 1rem;
-      color: #fff;
+      color: #000;
       display: flex;
       align-items: center;
       gap: 0.6rem;
@@ -20,24 +20,131 @@
     #status {
       width: 8px; height: 8px;
       border-radius: 50%;
-      border: 1px solid #fff;
+      border: 1px solid #000;
       flex-shrink: 0;
     }
-    #status.connected { background: #fff; border-color: #fff; }
+    #status.connected { background: #000; border-color: #000; }
     #status.disconnected { background: transparent; }
     #received { font-size: 0.85rem; opacity: 0.9; }
     #fabricate-btn {
       margin-left: auto;
       padding: 0.35rem 0.75rem;
       font-size: 0.85rem;
-      color: #fff;
+      color: #000;
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.6);
+      border: 1px solid rgba(0,0,0,0.6);
       border-radius: 4px;
       cursor: pointer;
     }
-    #fabricate-btn:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
-    #canvas { display: block; width: 100vw; height: 100vh; background: #000; }
+    #fabricate-btn:hover { border-color: #000; background: rgba(0,0,0,0.08); }
+    #layout {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #fff;
+    }
+    #metrics-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 360px;
+      padding: 72px 20px 20px;
+      background: rgba(255,255,255,0.96);
+      border-left: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      font-size: 12px;
+    }
+    #metrics-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 4px 0;
+    }
+    #nl-input {
+      width: 100%;
+      min-height: 80px;
+      max-height: 140px;
+      resize: vertical;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      background: rgba(255,255,255,0.9);
+    }
+    #nl-input:focus {
+      border-color: #000;
+    }
+    #analyze-btn {
+      margin-top: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid #000;
+      background: #000;
+      color: #fff;
+      cursor: pointer;
+    }
+    #analyze-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #metrics-help {
+      font-size: 10px;
+      color: #777;
+      line-height: 1.4;
+    }
+    .metric-row {
+      margin-top: 8px;
+    }
+    .metric-label-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .metric-value {
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-bar {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+    .metric-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 0%;
+      background: #000;
+      transition: width 0.4s ease-out;
+    }
+    @media (max-width: 960px) {
+      #metrics-panel {
+        width: 100%;
+        height: 260px;
+        top: auto;
+        padding-top: 16px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -46,7 +153,71 @@
     <span id="received">—</span>
     <button type="button" id="fabricate-btn">Fabricate</button>
   </div>
-  <canvas id="canvas"></canvas>
+  <div id="layout">
+    <canvas id="canvas"></canvas>
+    <aside id="metrics-panel">
+      <div>
+        <h2 id="metrics-title">Text → garment metrics</h2>
+        <p style="margin:0 0 8px 0; font-size:11px; color:#333;">
+          Describe what you&apos;re doing today. The system will interpret it into five 0–1 garment parameters.
+        </p>
+        <form id="metrics-form">
+          <textarea id="nl-input" placeholder="e.g. Walking outside in light rain, then sitting at a desk for a few hours..."></textarea>
+          <button id="analyze-btn" type="submit">Analyze text</button>
+        </form>
+        <p id="metrics-help">
+          Uses OpenAI in the browser. Copy <code>api-key.example.json</code> to <code>api-key.json</code> and add your key there (api-key.json is not committed).
+        </p>
+      </div>
+      <div id="metrics-sliders">
+        <div class="metric-row" data-metric="Fit">
+          <div class="metric-label-line">
+            <span>Fit (close → loose)</span>
+            <span class="metric-value" id="metric-fit-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-fit-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="Mesh">
+          <div class="metric-label-line">
+            <span>Mesh (open → fine)</span>
+            <span class="metric-value" id="metric-mesh-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-mesh-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="Thickness">
+          <div class="metric-label-line">
+            <span>Thickness (thin → thick)</span>
+            <span class="metric-value" id="metric-thickness-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-thickness-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="Airflow">
+          <div class="metric-label-line">
+            <span>Airflow (breathable → sealed)</span>
+            <span class="metric-value" id="metric-airflow-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-airflow-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="Support">
+          <div class="metric-label-line">
+            <span>Support (soft → rigid)</span>
+            <span class="metric-value" id="metric-support-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-support-bar"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <script type="importmap">
   {
@@ -61,15 +232,176 @@
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
     import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
     import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
     import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+
+    const InvertShader = {
+      uniforms: { tDiffuse: { value: null } },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+      `,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tDiffuse;
+        varying vec2 vUv;
+        void main() {
+          gl_FragColor = vec4(1.0 - texture2D(tDiffuse, vUv).rgb, 1.0);
+        }
+      `
+    };
 
     const WS_URL = "ws://127.0.0.1:9000";
     const statusEl = document.getElementById("status");
     const canvas = document.getElementById("canvas");
+    const nlInput = document.getElementById("nl-input");
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const metricsForm = document.getElementById("metrics-form");
+    const metricEls = {
+      Fit: {
+        val: document.getElementById("metric-fit-val"),
+        bar: document.getElementById("metric-fit-bar")
+      },
+      Mesh: {
+        val: document.getElementById("metric-mesh-val"),
+        bar: document.getElementById("metric-mesh-bar")
+      },
+      Thickness: {
+        val: document.getElementById("metric-thickness-val"),
+        bar: document.getElementById("metric-thickness-bar")
+      },
+      Airflow: {
+        val: document.getElementById("metric-airflow-val"),
+        bar: document.getElementById("metric-airflow-bar")
+      },
+      Support: {
+        val: document.getElementById("metric-support-val"),
+        bar: document.getElementById("metric-support-bar")
+      }
+    };
 
-    // ——— Scene: black background, subtle grid
+    let OPENAI_API_KEY = "";
+    let apiKeyLoaded = false;
+    let apiKeyPromise = null;
+    function ensureApiKey() {
+      if (apiKeyLoaded) return Promise.resolve(OPENAI_API_KEY);
+      if (apiKeyPromise) return apiKeyPromise;
+      apiKeyPromise = fetch("api-key.json")
+        .then((r) => { if (!r.ok) throw new Error("not found"); return r.json(); })
+        .then((o) => {
+          OPENAI_API_KEY = (o.OPENAI_API_KEY || "").trim();
+          apiKeyLoaded = true;
+          return OPENAI_API_KEY;
+        })
+        .catch(() => { apiKeyLoaded = true; return ""; });
+      return apiKeyPromise;
+    }
+
+    function setMetricsDisplay(values) {
+      ["Fit","Mesh","Thickness","Airflow","Support"].forEach((key) => {
+        const vRaw = values && typeof values[key] === "number" ? values[key] : 0;
+        const v = Math.max(0, Math.min(1, vRaw));
+        const els = metricEls[key];
+        if (!els) return;
+        els.val.textContent = v.toFixed(2);
+        els.bar.style.width = (v * 100).toFixed(1) + "%";
+      });
+    }
+
+    async function analyzeTextToMetrics(text) {
+      const key = await ensureApiKey();
+      if (!key || key === "PASTE_YOUR_OPENAI_API_KEY_HERE") {
+        alert("Add your API key: copy api-key.example.json to api-key.json in this folder and replace the placeholder with your OpenAI key.");
+        return null;
+      }
+      const payload = {
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `You are a garment behavior interpreter. 
+
+Your job is to read a short paragraph describing someone's situation and convert it into 5 normalized values between 0 and 1.
+
+Return only a JSON object like:
+
+{
+  "Fit": float,
+  "Mesh": float,
+  "Thickness": float,
+  "Airflow": float,
+  "Support": float
+}
+
+Use these orientations and meanings:
+
+- Fit: 0 = close/tight, 1 = loose/relaxed
+  Influenced by temperature (colder → closer), activity (higher → looser), containment need (higher → closer).
+
+- Mesh: 0 = open/coarse, 1 = fine/tight
+  Colder → finer, formal → finer, active → coarser, sleek aesthetics → finer.
+
+- Thickness: 0 = thin, 1 = thick
+  Driven by cold temperature, wind speed, and time outdoors.
+
+- Airflow: 0 = most breathable, 1 = least breathable
+  Hotter/humid/active → more breathable (lower); cold/outdoor → less breathable (higher).
+
+- Support: 0 = soft/flexible, 1 = rigid/structured
+  Driven by physical demand, need for grounding, formality, and environmental instability.
+
+Be consistent, numeric, and concise. 
+Output only the JSON, no explanation.`
+          },
+          { role: "user", content: text }
+        ]
+      };
+
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("OpenAI error", err);
+        alert("Failed to analyze text.");
+        return null;
+      }
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) return null;
+      try {
+        return JSON.parse(content);
+      } catch (e) {
+        console.error("Failed to parse JSON content", content);
+        alert("Analysis returned unexpected format.");
+        return null;
+      }
+    }
+
+    metricsForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = (nlInput.value || "").trim();
+      if (!text) return;
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = "Analyzing…";
+      try {
+        const result = await analyzeTextToMetrics(text);
+        if (result) setMetricsDisplay(result);
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Analyze text";
+      }
+    });
+
+    // ——— Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0xffffff);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
     camera.position.set(2, 1.5, 2);
@@ -80,13 +412,15 @@
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new ShaderPass(InvertShader));
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.5,
-      0.4,
-      0.45
+      0.28,
+      0.3,
+      0.55
     );
     composer.addPass(bloomPass);
+    composer.addPass(new ShaderPass(InvertShader));
 
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = true;
@@ -121,7 +455,8 @@
         ));
       }
       const curve = new THREE.CatmullRomCurve3(points, false);
-      const sampled = curve.getPoints(pointCount);
+      const curvePoints = Math.max(pointCount * 6, 64);
+      const sampled = curve.getPoints(curvePoints);
       const smoothFloats = new Float32Array(sampled.length * 3);
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity, zMin = Infinity, zMax = -Infinity;
       for (let i = 0; i < sampled.length; i++) {
@@ -136,7 +471,7 @@
       const extent = Math.max(xMax - xMin, yMax - yMin, zMax - zMin, 0.001);
       const geometry = new THREE.BufferGeometry().setFromPoints(sampled);
       const material = new THREE.LineBasicMaterial({
-        color: 0xffffff,
+        color: 0x000000,
         linewidth: 1.5
       });
       const line = new THREE.Line(geometry, material);

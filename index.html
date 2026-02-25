@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Showcase — Grasshopper &amp; Text to Fabric</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      letter-spacing: 0.02em;
+    }
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      max-width: 720px;
+    }
+    a.card {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      padding: 1.5rem 1.75rem;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    a.card:hover {
+      border-color: #333;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    a.card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+    }
+    a.card p {
+      font-size: 0.9rem;
+      color: #555;
+      margin: 0;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <h1>Showcase</h1>
+  <div class="cards">
+    <a class="card" href="gh-websocket/index.html">
+      <h2>Grasshopper line viewer</h2>
+      <p>Live 3D line from Rhino/Grasshopper over WebSocket — floating garment motion, bloom, fabricate growth.</p>
+    </a>
+    <a class="card" href="text-to-fabric/">
+      <h2>Text to fabric</h2>
+      <p>Describe your day in text; get garment parameters and an interactive 3D fabric visualization.</p>
+    </a>
+  </div>
+</body>
+</html>
