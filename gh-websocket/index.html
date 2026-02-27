@@ -159,7 +159,7 @@
       <div>
         <h2 id="metrics-title">Text → garment metrics</h2>
         <p style="margin:0 0 8px 0; font-size:11px; color:#333;">
-          Describe what you&apos;re doing today. The system will interpret it into five 0–1 garment parameters.
+          Describe what you&apos;re doing today. The system will interpret it into five 0–1 garment parameters. When connected, new metrics are sent to Grasshopper automatically.
         </p>
         <form id="metrics-form">
           <textarea id="nl-input" placeholder="e.g. Walking outside in light rain, then sitting at a desk for a few hours..."></textarea>
@@ -216,6 +216,7 @@
           </div>
         </div>
       </div>
+      <button type="button" id="send-gh-btn" style="margin-top:12px; padding:6px 10px; font-size:11px; border-radius:4px; border:1px solid #333; background:transparent; cursor:pointer;" title="Re-send last metrics (e.g. after GH reconnects)">Resend to Grasshopper</button>
     </aside>
   </div>
 
@@ -256,6 +257,8 @@
     const nlInput = document.getElementById("nl-input");
     const analyzeBtn = document.getElementById("analyze-btn");
     const metricsForm = document.getElementById("metrics-form");
+    const sendGhBtn = document.getElementById("send-gh-btn");
+    let lastMetrics = null;
     const metricEls = {
       Fit: {
         val: document.getElementById("metric-fit-val"),
@@ -392,10 +395,25 @@ Output only the JSON, no explanation.`
       analyzeBtn.textContent = "Analyzing…";
       try {
         const result = await analyzeTextToMetrics(text);
-        if (result) setMetricsDisplay(result);
+        if (result) {
+          setMetricsDisplay(result);
+          lastMetrics = result;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "metrics", ...result }));
+          }
+        }
       } finally {
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = "Analyze text";
+      }
+    });
+
+    sendGhBtn.addEventListener("click", () => {
+      if (!lastMetrics) return;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "metrics", ...lastMetrics }));
+      } else {
+        alert("Not connected to Grasshopper. Start the WebSocket server (node server.js) and connect GH to ws://127.0.0.1:9000");
       }
     });
 
@@ -654,6 +672,7 @@ Output only the JSON, no explanation.`
       ws.onerror = () => {};
 
       ws.onmessage = async (event) => {
+        if (typeof event.data === "string") return;
         let buffer;
         if (event.data instanceof ArrayBuffer) {
           buffer = event.data;
