@@ -4,18 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Grasshopper Points — Floating Garment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; overflow: hidden; background: #fff; }
+    :root {
+      --axis-font: 'Bebas Neue', system-ui, sans-serif;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: #fff;
+      color: #000;
+    }
     #ui {
       position: fixed;
       top: 0; left: 0; right: 0;
       padding: 0.75rem 1rem;
       color: #000;
+      background: #fff;
+      border-bottom: 1px solid #e5e5e5;
       display: flex;
       align-items: center;
       gap: 0.6rem;
-      z-index: 10;
+      z-index: 20;
     }
     #status {
       width: 8px; height: 8px;
@@ -40,7 +55,18 @@
     #layout {
       position: relative;
       width: 100vw;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      align-items: stretch;
+    }
+    #visual-panel {
+      position: sticky;
+      top: 0;
       height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      border-right: 1px solid #eee;
     }
     #canvas {
       position: absolute;
@@ -51,25 +77,22 @@
       background: #fff;
     }
     #metrics-panel {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 360px;
-      padding: 72px 20px 20px;
-      background: rgba(255,255,255,0.96);
+      position: relative;
+      padding: 88px 24px 24px;
+      background: rgba(255,255,255,0.98);
       border-left: 1px solid #e0e0e0;
       display: flex;
       flex-direction: column;
       gap: 16px;
       font-size: 12px;
+      overflow-y: auto;
     }
     #metrics-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
+      font-family: var(--axis-font);
+      font-size: 22px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      margin: 0 0 4px 0;
+      margin: 0 0 8px 0;
     }
     #nl-input {
       width: 100%;
@@ -117,6 +140,7 @@
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      font-family: var(--axis-font);
     }
     .metric-value {
       font-variant-numeric: tabular-nums;
@@ -154,12 +178,14 @@
     <button type="button" id="fabricate-btn">Fabricate</button>
   </div>
   <div id="layout">
-    <canvas id="canvas"></canvas>
+    <div id="visual-panel">
+      <canvas id="canvas"></canvas>
+    </div>
     <aside id="metrics-panel">
       <div>
         <h2 id="metrics-title">Text → garment metrics</h2>
         <p style="margin:0 0 8px 0; font-size:11px; color:#333;">
-          Describe what you&apos;re doing today. The system will interpret it into five 0–1 garment parameters. When connected, new metrics are sent to Grasshopper automatically.
+          Describe what you&apos;re doing today. The system will interpret it into eight 0–1 garment parameters. When connected, new metrics are sent to Grasshopper automatically.
         </p>
         <form id="metrics-form">
           <textarea id="nl-input" placeholder="e.g. Walking outside in light rain, then sitting at a desk for a few hours..."></textarea>
@@ -215,6 +241,33 @@
             <div class="metric-fill" id="metric-support-bar"></div>
           </div>
         </div>
+        <div class="metric-row" data-metric="Comfort">
+          <div class="metric-label-line">
+            <span>Comfort / Aesthetic (utilitarian → indulgent)</span>
+            <span class="metric-value" id="metric-comfort-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-comfort-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="DressLength">
+          <div class="metric-label-line">
+            <span>Dress length (short → long)</span>
+            <span class="metric-value" id="metric-dresslength-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-dresslength-bar"></div>
+          </div>
+        </div>
+        <div class="metric-row" data-metric="DressSize">
+          <div class="metric-label-line">
+            <span>Hem width (narrow → wide)</span>
+            <span class="metric-value" id="metric-dresssize-val">0.00</span>
+          </div>
+          <div class="metric-bar">
+            <div class="metric-fill" id="metric-dresssize-bar"></div>
+          </div>
+        </div>
       </div>
       <button type="button" id="send-gh-btn" style="margin-top:12px; padding:6px 10px; font-size:11px; border-radius:4px; border:1px solid #333; background:transparent; cursor:pointer;" title="Re-send last metrics (e.g. after GH reconnects)">Resend to Grasshopper</button>
     </aside>
@@ -254,6 +307,7 @@
     const WS_URL = "ws://127.0.0.1:9000";
     const statusEl = document.getElementById("status");
     const canvas = document.getElementById("canvas");
+    const visualPanel = document.getElementById("visual-panel");
     const nlInput = document.getElementById("nl-input");
     const analyzeBtn = document.getElementById("analyze-btn");
     const metricsForm = document.getElementById("metrics-form");
@@ -279,6 +333,18 @@
       Support: {
         val: document.getElementById("metric-support-val"),
         bar: document.getElementById("metric-support-bar")
+      },
+      Comfort: {
+        val: document.getElementById("metric-comfort-val"),
+        bar: document.getElementById("metric-comfort-bar")
+      },
+      DressLength: {
+        val: document.getElementById("metric-dresslength-val"),
+        bar: document.getElementById("metric-dresslength-bar")
+      },
+      DressSize: {
+        val: document.getElementById("metric-dresssize-val"),
+        bar: document.getElementById("metric-dresssize-bar")
       }
     };
 
@@ -300,7 +366,7 @@
     }
 
     function setMetricsDisplay(values) {
-      ["Fit","Mesh","Thickness","Airflow","Support"].forEach((key) => {
+      ["Fit","Mesh","Thickness","Airflow","Support","Comfort","DressLength","DressSize"].forEach((key) => {
         const vRaw = values && typeof values[key] === "number" ? values[key] : 0;
         const v = Math.max(0, Math.min(1, vRaw));
         const els = metricEls[key];
@@ -324,7 +390,9 @@
             role: "system",
             content: `You are a garment behavior interpreter. 
 
-Your job is to read a short paragraph describing someone's situation and convert it into 5 normalized values between 0 and 1.
+Your job is to read a short paragraph describing someone's situation and convert it into 8 normalized values between 0 and 1.
+
+Important: Infer from even minimal cues. Use the whole range 0–1; avoid returning 0.5 for every field. Only use 0.5 for a dimension when the text gives no relevant cue at all. One or two words (e.g. "cozy", "quick errands", "cold morning") are enough to shift several values.
 
 Return only a JSON object like:
 
@@ -333,7 +401,10 @@ Return only a JSON object like:
   "Mesh": float,
   "Thickness": float,
   "Airflow": float,
-  "Support": float
+  "Support": float,
+  "Comfort": float,
+  "DressLength": float,
+  "DressSize": float
 }
 
 Use these orientations and meanings:
@@ -352,6 +423,17 @@ Use these orientations and meanings:
 
 - Support: 0 = soft/flexible, 1 = rigid/structured
   Driven by physical demand, need for grounding, formality, and environmental instability.
+
+- Comfort: 0 = utilitarian / minimal comfort focus, 1 = indulgent / strong comfort or aesthetic preference
+  Influenced by self-care intent, occasion (casual vs special), desire for softness or sensory pleasure, and aesthetic preference (plain vs expressive). Higher for "I want to feel cozy" or "I want to look/feel good"; lower for purely functional descriptions.
+
+- DressLength: 0 = short (mini, above knee), 1 = long (midi, maxi, floor length)
+  Infer from occasion, formality, weather, or explicit mention of length. Use 0.5 only when there is no cue.
+
+- DressSize: 0 = narrow/slim hem (fitted, pencil, sheath, bodycon), 1 = wide/voluminous hem (A-line, circle skirt, full skirt, ball gown)
+  Infer from occasion (formal/ball → wider), activity (very active/mobile → narrower; relaxed → can be wider), comfort (easy movement often suggests some width), and aesthetic (sleek/minimal → narrower, dramatic/romantic → wider). Use 0.5 only when there is no cue.
+
+Example: For "Cozy day at home" you might set Comfort high (e.g. 0.8), Thickness moderate-high (0.6), Fit looser (0.7), Airflow moderate (0.4), and vary others from context rather than all 0.5.
 
 Be consistent, numeric, and concise. 
 Output only the JSON, no explanation.`
@@ -421,12 +503,22 @@ Output only the JSON, no explanation.`
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1000);
+    function getVisualSize() {
+      if (visualPanel) {
+        const w = visualPanel.clientWidth || window.innerWidth;
+        const h = visualPanel.clientHeight || window.innerHeight;
+        return { width: w, height: h };
+      }
+      return { width: window.innerWidth, height: window.innerHeight };
+    }
+
+    const size = getVisualSize();
+    const camera = new THREE.PerspectiveCamera(60, size.width / size.height, 0.01, 1000);
     camera.position.set(2, 1.5, 2);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(size.width, size.height);
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
@@ -454,10 +546,11 @@ Output only the JSON, no explanation.`
     let growthProgress = 1;
 
     function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const s = getVisualSize();
+      camera.aspect = s.width / s.height;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      composer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(s.width, s.height);
+      composer.setSize(s.width, s.height);
       composer.setPixelRatio(renderer.getPixelRatio());
     }
     window.addEventListener("resize", onResize);
