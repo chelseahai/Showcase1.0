@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     * { box-sizing: border-box; }
     :root {
@@ -87,6 +88,133 @@
       font-size: 12px;
       overflow-y: auto;
     }
+    #map {
+      width: 100%;
+      height: 220px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      background: #e8e8e8;
+    }
+    .minimal-marker-icon { background: none; border: none; }
+    .minimal-marker-dot {
+      display: block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #000;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .route-form label { display: block; font-size: 11px; margin-bottom: 2px; color: #333; }
+    .route-form input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .route-form input:focus { outline: none; border-color: #000; }
+    .waypoint-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .waypoint-row .address-wrap { flex: 1; position: relative; }
+    .waypoint-row input { flex: 1; margin-bottom: 0; }
+    .waypoint-row .remove-wp { padding: 4px 8px; font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
+    .waypoint-row .remove-wp:hover { background: #eee; }
+    #add-dest-btn { padding: 4px 8px; font-size: 11px; margin-bottom: 8px; border: 1px solid #999; background: transparent; border-radius: 4px; cursor: pointer; }
+    #add-dest-btn:hover { background: rgba(0,0,0,0.06); }
+    #calculate-route-btn { padding: 6px 12px; font-size: 11px; border-radius: 4px; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
+    #calculate-route-btn:hover { background: #333; }
+    #calculate-route-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #route-status { font-size: 11px; color: #666; margin-top: 6px; min-height: 1.2em; }
+    .pipeline-step { margin-top: 20px; padding-top: 12px; border-top: 1px solid #eee; }
+    .pipeline-step-title { font-family: var(--axis-font); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px 0; }
+    .step-empty { font-size: 11px; color: #888; margin: 6px 0 0 0; font-style: italic; }
+    .step1-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; font-size: 10px; color: #555; }
+    .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .step1-annotated { font-size: 12px; line-height: 1.5; padding: 10px; background: #fafafa; border-radius: 4px; border: 1px solid #eee; text-align: left; margin: 0; text-indent: 0; }
+    .step1-annotated .highlight-wrap { display: inline-block; vertical-align: top; }
+    .step1-annotated .highlight-wrap > span:first-child { display: inline-block; }
+    .step1-annotated .highlight-start { background: rgba(76, 175, 80, 0.35); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-destination { background: rgba(33, 150, 243, 0.35); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-transit { background: rgba(255, 152, 0, 0.35); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-weather { background: rgba(156, 39, 176, 0.25); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-activity { background: rgba(0, 188, 212, 0.3); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-comfort { background: rgba(233, 30, 99, 0.25); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-duration { background: rgba(96, 125, 139, 0.35); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-context { background: rgba(139, 195, 74, 0.35); padding: 0 2px; border-radius: 2px; }
+    .step1-annotated .highlight-label { display: block; font-size: 10px; margin-top: 1px; padding: 0 2px; border-radius: 2px; text-align: center; }
+    .step1-annotated .highlight-label-start { background: rgba(76, 175, 80, 0.35); color: #2e7d32; }
+    .step1-annotated .highlight-label-destination { background: rgba(33, 150, 243, 0.35); color: #1565c0; }
+    .step1-annotated .highlight-label-transit { background: rgba(255, 152, 0, 0.35); color: #e65100; }
+    .step1-annotated .highlight-label-weather { background: rgba(156, 39, 176, 0.25); color: #6a1b9a; }
+    .step1-annotated .highlight-label-activity { background: rgba(0, 188, 212, 0.3); color: #006064; }
+    .step1-annotated .highlight-label-comfort { background: rgba(233, 30, 99, 0.25); color: #ad1457; }
+    .step1-annotated .highlight-label-duration { background: rgba(96, 125, 139, 0.35); color: #37474f; }
+    .step1-annotated .highlight-label-context { background: rgba(139, 195, 74, 0.35); color: #558b2f; }
+    .step2-locations { font-size: 11px; margin-bottom: 8px; color: #333; }
+    .step2-locations .loc-line { margin: 2px 0; }
+    .segment-details-table-wrap { overflow-x: auto; margin-top: 6px; }
+    .segment-details-table { width: 100%; font-size: 10px; border-collapse: collapse; }
+    .segment-details-table th, .segment-details-table td { padding: 4px 6px; border: 1px solid #ddd; text-align: left; }
+    .segment-details-table th { background: #f5f5f5; font-weight: 600; }
+    .step2-timeline { font-size: 11px; margin-bottom: 8px; }
+    .step2-timeline .timeline-block { margin-bottom: 12px; padding: 8px 10px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; }
+    .step2-timeline .timeline-block.timeline-location { border-left: 3px solid #2196f3; }
+    .step2-timeline .timeline-block.timeline-leg { border-left: 3px solid #4caf50; }
+    .step2-timeline .timeline-title { font-weight: 600; margin-bottom: 4px; }
+    .step2-timeline .timeline-meta { color: #555; margin: 2px 0; }
+    .step2-timeline .timeline-weather { font-size: 10px; color: #666; margin: 2px 0; }
+    .route-advanced { margin-top: 12px; font-size: 11px; }
+    .route-advanced summary { cursor: pointer; color: #666; }
+    .calculation-process-box { font-size: 10px; color: #444; background: #f8f8f8; padding: 10px; border-radius: 4px; border: 1px solid #eee; max-height: 420px; overflow-y: auto; }
+    .calc-flow-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .calc-flow-row .calc-flow-label { font-weight: 600; min-width: 72px; font-size: 10px; }
+    .calc-flow-inputs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .calc-flow-chip { font-size: 9px; padding: 2px 6px; background: #e0e0e0; border-radius: 4px; white-space: nowrap; }
+    .calc-flow-arrow { color: #888; font-size: 12px; flex-shrink: 0; }
+    .calc-flow-formula { font-size: 9px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; max-width: 280px; overflow-x: auto; }
+    .calc-flow-result { font-size: 11px; font-weight: 600; padding: 4px 10px; background: #333; color: #fff; border-radius: 4px; min-width: 36px; text-align: center; }
+    .calc-flow-llm-source { font-size: 9px; padding: 4px 8px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; }
+    .calc-formula-block { margin-bottom: 12px; }
+    .calc-formula-name { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .calc-formula-line { font-size: 10px; font-family: ui-monospace, monospace; color: #333; margin-bottom: 2px; word-break: break-all; }
+    .calc-formula-equals { font-size: 11px; color: #666; margin-bottom: 1px; }
+    .calc-formula-result { font-size: 12px; font-weight: 700; color: #000; }
+    .calc-all-llm-intro { margin: 0 0 8px 0; font-style: italic; color: #666; font-size: 10px; }
+    #route-segments-list { margin-top: 8px; font-size: 11px; }
+    #route-segments-list ul { margin: 4px 0 0 0; padding-left: 18px; }
+    #route-segments-list li { margin-bottom: 2px; }
+    .segment-item { list-style: none; margin-left: -18px; margin-bottom: 10px; }
+    .segment-title { font-weight: 600; }
+    .segment-weather { font-size: 10px; color: #555; margin: 2px 0; }
+    .segment-context-row { margin-top: 4px; }
+    .segment-indoor-outdoor { font-size: 11px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; }
+    .address-wrap { position: relative; }
+    .address-dropdown {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      z-index: 100;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .address-dropdown.is-open { display: block; }
+    .address-dropdown-item {
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .address-dropdown-item:last-child { border-bottom: none; }
+    .address-dropdown-item:hover { background: #f0f0f0; }
     #metrics-title {
       font-family: var(--axis-font);
       font-size: 22px;
@@ -110,7 +238,7 @@
     #nl-input:focus {
       border-color: #000;
     }
-    #analyze-btn {
+    #plan-btn, #analyze-btn {
       margin-top: 6px;
       padding: 6px 10px;
       font-size: 11px;
@@ -120,7 +248,8 @@
       color: #fff;
       cursor: pointer;
     }
-    #analyze-btn:disabled {
+    #plan-btn:hover, #analyze-btn:hover { background: #333; }
+    #plan-btn:disabled, #analyze-btn:disabled {
       opacity: 0.5;
       cursor: default;
     }
@@ -183,19 +312,103 @@
     </div>
     <aside id="metrics-panel">
       <div>
-        <h2 id="metrics-title">Text → garment metrics</h2>
+        <h2 id="metrics-title" style="font-family: var(--axis-font); font-size: 22px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 8px 0;">Describe your day</h2>
         <p style="margin:0 0 8px 0; font-size:11px; color:#333;">
-          Describe what you&apos;re doing today. The system will interpret it into eight 0–1 garment parameters. When connected, new metrics are sent to Grasshopper automatically.
+          Describe where you&apos;re going and what you&apos;re doing. The system will extract your route, pull weather, and compute eight 0–1 garment metrics. When connected, metrics are sent to Grasshopper.
         </p>
         <form id="metrics-form">
-          <textarea id="nl-input" placeholder="e.g. Walking outside in light rain, then sitting at a desk for a few hours..."></textarea>
-          <button id="analyze-btn" type="submit">Analyze text</button>
+          <textarea id="nl-input" placeholder="e.g. Starting from Central Park, then heading to the office near Times Square, then a café in Brooklyn. Relaxed day, might get chilly later..."></textarea>
+          <button id="plan-btn" type="submit">Plan route &amp; metrics</button>
         </form>
-        <p id="metrics-help">
-          Uses OpenAI in the browser. Copy <code>api-key.example.json</code> to <code>api-key.json</code> and add your key there (api-key.json is not committed).
+        <p id="plan-status" style="font-size:11px; color:#666; margin-top:6px; min-height:1.2em;"></p>
+        <p id="metrics-help" style="margin-top:8px;">
+          Uses OpenAI in the browser. Copy <code>api-key.example.json</code> to <code>api-key.json</code> and add your key (api-key.json is not committed).
         </p>
       </div>
-      <div id="metrics-sliders">
+        <!-- Step 1 – Your input -->
+        <section class="pipeline-step" id="step1-section">
+          <h2 class="pipeline-step-title">Step 1 – Your input</h2>
+          <div id="step1-legend" class="step1-legend" style="display:none;">
+            <span class="legend-item"><span class="legend-swatch highlight-start"></span> Start</span>
+            <span class="legend-item"><span class="legend-swatch highlight-destination"></span> Destination</span>
+            <span class="legend-item"><span class="legend-swatch highlight-transit"></span> Transit</span>
+            <span class="legend-item"><span class="legend-swatch highlight-weather"></span> Weather</span>
+            <span class="legend-item"><span class="legend-swatch highlight-activity"></span> Activity</span>
+            <span class="legend-item"><span class="legend-swatch highlight-comfort"></span> Comfort</span>
+            <span class="legend-item"><span class="legend-swatch highlight-duration"></span> Duration</span>
+            <span class="legend-item"><span class="legend-swatch highlight-context"></span> Context</span>
+          </div>
+          <div id="step1-annotated" class="step1-annotated"></div>
+          <p id="step1-empty" class="step-empty">Enter text above and click &quot;Plan route &amp; metrics&quot; to see your input with highlights.</p>
+        </section>
+
+        <!-- Step 2 – Extracted route -->
+        <section class="pipeline-step" id="step2-section">
+          <h2 class="pipeline-step-title">Step 2 – Extracted route</h2>
+          <div id="map"></div>
+          <div id="step2-timeline" class="step2-timeline"></div>
+          <p id="step2-empty" class="step-empty">No route yet. Run &quot;Plan route &amp; metrics&quot; to see locations and map.</p>
+          <div id="step2-segment-details" style="display:none;">
+            <strong>Segment details</strong>
+            <div class="segment-details-table-wrap">
+              <table id="step2-segments-table" class="segment-details-table"></table>
+            </div>
+          </div>
+          <details class="route-advanced" id="route-advanced">
+            <summary>Advanced: override waypoints</summary>
+            <form class="route-form" id="route-form">
+              <label>Start</label>
+              <div class="address-wrap">
+                <input type="text" id="route-start" placeholder="e.g. Central Park, NYC" autocomplete="off" />
+                <div class="address-dropdown" id="route-start-dropdown"></div>
+              </div>
+              <div id="destinations-container">
+                <label>Destination 1</label>
+                <div class="waypoint-row">
+                  <div class="address-wrap">
+                    <input type="text" data-dest-index="0" placeholder="e.g. Office address" autocomplete="off" />
+                    <div class="address-dropdown"></div>
+                  </div>
+                  <button type="button" class="remove-wp" data-dest-index="0" aria-label="Remove">×</button>
+                </div>
+                <label>Destination 2</label>
+                <div class="waypoint-row">
+                  <div class="address-wrap">
+                    <input type="text" data-dest-index="1" placeholder="e.g. Café" autocomplete="off" />
+                    <div class="address-dropdown"></div>
+                  </div>
+                  <button type="button" class="remove-wp" data-dest-index="1" aria-label="Remove">×</button>
+                </div>
+              </div>
+              <label>Transit mode</label>
+              <select id="route-profile" style="margin-bottom:8px; padding:6px 8px; font-size:12px; border:1px solid #ddd; border-radius:4px;">
+                <option value="walking">Walking</option>
+                <option value="cycling">Biking</option>
+                <option value="driving">Driving</option>
+              </select>
+              <button type="button" id="add-dest-btn">+ Add destination</button>
+              <button type="button" id="calculate-route-btn">Calculate route</button>
+            </form>
+            <p id="route-status"></p>
+            <div id="route-segments-list" style="display:none;">
+              <strong>Segments</strong>
+              <ul id="route-segments-ul"></ul>
+            </div>
+          </details>
+        </section>
+
+        <!-- Step 3 – How each metric is calculated -->
+        <section class="pipeline-step" id="step3-section">
+          <h2 class="pipeline-step-title">Step 3 – How each metric is calculated</h2>
+          <div id="calculation-process" class="calculation-process-box"></div>
+          <p id="step3-empty" class="step-empty">Run &quot;Plan route &amp; metrics&quot; to see formulas and values.</p>
+        </section>
+
+        <!-- Step 4 – Final metrics -->
+        <section class="pipeline-step" id="step4-section">
+          <h2 class="pipeline-step-title">Step 4 – Final metrics</h2>
+          <p style="font-size:11px; color:#333; margin:0 0 8px 0;">These values are sent to Grasshopper when connected.</p>
+      <div id="metrics-sliders" style="margin-top:16px;">
         <div class="metric-row" data-metric="Fit">
           <div class="metric-label-line">
             <span>Fit (close → loose)</span>
@@ -270,9 +483,11 @@
         </div>
       </div>
       <button type="button" id="send-gh-btn" style="margin-top:12px; padding:6px 10px; font-size:11px; border-radius:4px; border:1px solid #333; background:transparent; cursor:pointer;" title="Re-send last metrics (e.g. after GH reconnects)">Resend to Grasshopper</button>
+        </section>
     </aside>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script type="importmap">
   {
     "imports": {
@@ -309,10 +524,11 @@
     const canvas = document.getElementById("canvas");
     const visualPanel = document.getElementById("visual-panel");
     const nlInput = document.getElementById("nl-input");
-    const analyzeBtn = document.getElementById("analyze-btn");
+    const planBtn = document.getElementById("plan-btn");
     const metricsForm = document.getElementById("metrics-form");
     const sendGhBtn = document.getElementById("send-gh-btn");
     let lastMetrics = null;
+    let lastMetricBreakdown = null;
     const metricEls = {
       Fit: {
         val: document.getElementById("metric-fit-val"),
@@ -348,6 +564,952 @@
       }
     };
 
+    // —— Route & map (step 1: map + search + segmented routes) ——
+    const NOMINATIM_UA = "ShowcaseGarmentApp/1.0";
+    const OSRM_BASE = "https://router.project-osrm.org/route/v1";
+    /** Typical speeds (m/s) for client-side duration when public OSRM returns same route for all profiles. */
+    const PROFILE_SPEED_MS = { foot: 1.39, bike: 4.17, driving: 11.11 };
+    const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
+    let map = null;
+    let routeLayer = null;
+    /** @type {{ waypoints: Array<{name:string,lat:number,lon:number}>, legs: Array<{fromIndex:number,toIndex:number,duration_sec:number,distance_m:number,geometry:[number,number][]}>, fullGeometry: [number,number][] }} */
+    let routeSegments = { waypoints: [], legs: [], fullGeometry: [] };
+
+    function initMap() {
+      if (map || typeof L === "undefined") return;
+      const el = document.getElementById("map");
+      if (!el) return;
+      map = L.map("map").setView([40.78, -73.97], 12);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        attribution: "© OpenStreetMap © CARTO",
+        subdomains: "abcd",
+        maxZoom: 20
+      }).addTo(map);
+      routeLayer = L.layerGroup().addTo(map);
+    }
+
+    /** Minimal circle marker icon for route waypoints (no teardrop). */
+    function createMinimalMarkerIcon() {
+      return L.divIcon({
+        className: "minimal-marker-icon",
+        html: "<span class=\"minimal-marker-dot\"></span>",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+    }
+
+    async function geocode(q) {
+      const query = encodeURIComponent((q || "").trim());
+      if (!query) return null;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+        { headers: { "User-Agent": NOMINATIM_UA } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const first = data && data[0];
+      if (!first) return null;
+      return { lat: parseFloat(first.lat), lon: parseFloat(first.lon), name: first.display_name };
+    }
+
+    /** Fetch multiple Nominatim results for autocomplete (key-free). */
+    async function searchNominatim(q) {
+      const query = encodeURIComponent((q || "").trim());
+      if (!query || query.length < 2) return [];
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=5`,
+        { headers: { "User-Agent": NOMINATIM_UA } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data || []).map((item) => ({
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+        name: item.display_name
+      }));
+    }
+
+    function getDestInputsInOrder() {
+      const container = document.getElementById("destinations-container");
+      if (!container) return [];
+      const rows = container.querySelectorAll(".waypoint-row");
+      const inputs = [];
+      rows.forEach((row) => {
+        const input = row.querySelector(".address-wrap input[type='text']");
+        if (input) inputs.push(input);
+      });
+      return inputs;
+    }
+
+    /** Fetch current weather at lat/lon (Open-Meteo, key-free). Returns temp °C, humidity %, wind_speed m/s. */
+    async function fetchWeather(lat, lon) {
+      const url = `${OPEN_METEO_BASE}?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m&wind_speed_unit=ms`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const c = data?.current;
+      if (!c) return null;
+      return {
+        temp: c.temperature_2m ?? 15,
+        humidity: c.relative_humidity_2m ?? 50,
+        wind_speed: c.wind_speed_10m ?? 0
+      };
+    }
+
+    /** Call 1 – Route only: start, start_label, start_stay_min, destinations, transit_mode. Focused prompt for consistency. */
+    async function extractRouteFromText(text, apiKey) {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: `You extract only the route structure from a short description of someone's day. Return JSON only, no highlights.
+
+Output shape:
+{ "start": "geocodable place name", "start_label": "SHORT_LABEL or null", "start_stay_min": number or null, "destinations": [{"name": "geocodable place", "label": "SHORT_LABEL or null", "stay_min": number or null}], "transit_mode": "walking"|"cycling"|"driving" }
+
+Rules:
+- start: where they begin. Use the most specific geocodable name (e.g. "Central Park, New York", "11 East 32nd Street, Manhattan, NYC").
+- start_label: short label for the start location (e.g. HOME, My place). Use null if unclear.
+- start_stay_min: minutes at start before leaving. Only if stated (e.g. "45 min at home" → 45, "half an hour" → 30). Use null if not stated.
+- destinations: ordered list of stops. Each object must have "name" (geocodable), optional "label" (e.g. OFFICE, CAFE, GYM), optional "stay_min" (minutes at that place). Examples: "at the office for 4h 45 min" → stay_min 285; "quick 20 min at the café" → stay_min 20; "all morning" → ~180. Use numbers only for stay_min.
+- transit_mode: walking, cycling, or driving from context; default walking.
+
+If the text does not describe a multi-stop route, return start as empty string and destinations as []. Output only valid JSON.`
+            },
+            { role: "user", content: text }
+          ]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) return null;
+      try {
+        const p = JSON.parse(content);
+        const destRaw = Array.isArray(p.destinations) ? p.destinations : [];
+        const destinations = destRaw.map((d) => {
+          if (typeof d === "object" && d !== null && typeof d.name === "string") {
+            const name = d.name.trim();
+            if (!name) return null;
+            const stay = d.stay_min != null ? (typeof d.stay_min === "number" ? d.stay_min : parseInt(d.stay_min, 10)) : null;
+            return { name, label: typeof d.label === "string" ? d.label.trim() || null : null, stay_min: Number.isFinite(stay) ? stay : null };
+          }
+          if (typeof d === "string" && d.trim()) return { name: d.trim(), label: null, stay_min: null };
+          return null;
+        }).filter(Boolean);
+        const startStay = p.start_stay_min != null ? (typeof p.start_stay_min === "number" ? p.start_stay_min : parseInt(p.start_stay_min, 10)) : null;
+        return {
+          start: typeof p.start === "string" ? p.start.trim() : "",
+          start_label: typeof p.start_label === "string" ? p.start_label.trim() || null : null,
+          start_stay_min: Number.isFinite(startStay) ? startStay : null,
+          destinations,
+          transit_mode: ["walking", "cycling", "driving"].includes(p.transit_mode) ? p.transit_mode : "walking"
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /** Call 2 – Highlights only: same text, focused on highlights with exact substring and examples. */
+    async function extractHighlightsFromText(text, apiKey) {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: `You identify spans in the user's message to highlight by type. Return JSON only: { "highlights": [{"type": "start"|"destination"|"transit"|"weather"|"activity"|"comfort"|"duration"|"context", "text": "exact span from user message"}] }
+
+CRITICAL – Exact substring: Copy each span from the user message exactly, character-for-character. Do not rephrase, add punctuation, or change spelling. "text" must appear in the user message as-is (we match it literally). If the user wrote "for  a  couple of hours", your "text" must be exactly that.
+
+Types and example phrases (your "text" must match the user's words exactly):
+- start: origin (e.g. "Starting from Central Park", "from my place in Brooklyn")
+- destination: each stop (e.g. "the office near Times Square", "a café in Brooklyn")
+- transit: how they move (e.g. "walking", "by bike", "driving")
+- weather: temp/conditions (e.g. "chilly later", "might rain", "really hot")
+- activity: what they're doing / formality (e.g. "quick errands", "formal meeting", "casual day")
+- comfort: comfort/aesthetic (e.g. "cozy", "want to feel comfortable", "dress up")
+- duration: time spent (e.g. "for a couple of hours", "all morning", "briefly", "about 20 minutes", "for a little while", "half the day")
+- context: mood/situation (e.g. "formal", "not in a rush", "cozy day", "relaxed", "low key", "in a hurry")
+
+Example 1 – User message: "Starting from Central Park, then heading to the office near Times Square for a couple of hours. Walking, might get chilly. Cozy day."
+Expected highlights (exact substrings): start "Starting from Central Park", destination "the office near Times Square", duration "for a couple of hours", transit "Walking", weather "might get chilly", context "Cozy day."
+
+Example 2 – User message: "From home I drive to the gym for about 20 minutes then relax at a café. Not in a rush."
+Expected: start "From home", transit "drive", destination "the gym", duration "about 20 minutes", destination "a café", context "Not in a rush."
+
+Include every span that clearly matches a type. Omit a type if nothing matches. Output only valid JSON with a "highlights" array. You may optionally include start_index and end_index (0-based character indices into the user message) for each highlight; if present we will use them for precise placement.`
+            },
+            { role: "user", content: text }
+          ]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) return null;
+      try {
+        const p = JSON.parse(content);
+        const highlightTypes = ["start", "destination", "transit", "weather", "activity", "comfort", "duration", "context"];
+        const highlights = Array.isArray(p.highlights)
+          ? p.highlights
+            .filter((h) => h && highlightTypes.includes(h.type) && (typeof h.text === "string" && h.text.trim() || (typeof h.start_index === "number" && typeof h.end_index === "number")))
+            .map((h) => {
+              const text = typeof h.text === "string" ? h.text.trim() : "";
+              const start = h.start_index;
+              const end = h.end_index;
+              return { type: h.type, text, start_index: typeof start === "number" && start >= 0 ? start : undefined, end_index: typeof end === "number" && end > start ? end : undefined };
+            })
+          : [];
+        return { highlights };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /** Combined: run route-only and highlights-only calls, then merge. Returns same shape as before for compatibility. */
+    async function extractLocationsFromText(text, apiKey) {
+      const [route, highlightsResult] = await Promise.all([
+        extractRouteFromText(text, apiKey),
+        extractHighlightsFromText(text, apiKey)
+      ]);
+      const highlights = highlightsResult?.highlights ?? [];
+      if (!route) return null;
+      return {
+        start: route.start,
+        start_label: route.start_label,
+        start_stay_min: route.start_stay_min,
+        destinations: route.destinations,
+        transit_mode: route.transit_mode,
+        highlights
+      };
+    }
+
+    /** Build HTML with highlighted spans and label under each span. Uses exact match, then normalized (collapse spaces), then offsets if provided. */
+    const HIGHLIGHT_LABELS = { start: "Start", destination: "Destination", transit: "Transit", weather: "Weather", activity: "Activity", comfort: "Comfort", duration: "Duration", context: "Context" };
+
+    function normalizeForMatch(s) {
+      return (s || "").trim().replace(/\s+/g, " ");
+    }
+    /** Build normalized version of user text (trim, collapse spaces) and mapping: normalizedIndex -> originalIndex. */
+    function buildNormalizedMapping(userText) {
+      const s = userText || "";
+      let normalized = "";
+      const mapping = [];
+      let i = 0;
+      let lastWasSpace = true;
+      while (i < s.length) {
+        const isSpace = /\s/.test(s[i]);
+        if (isSpace) {
+          if (!lastWasSpace) { normalized += " "; mapping.push(i); }
+          lastWasSpace = true;
+          i++;
+        } else {
+          normalized += s[i];
+          mapping.push(i);
+          lastWasSpace = false;
+          i++;
+        }
+      }
+      const mapOffset = (idx) => (idx < 0 || idx >= mapping.length) ? -1 : mapping[idx];
+      return { normalized, mapping, length: normalized.length, mapOffset };
+    }
+
+    /** Resolve a highlight to { start, end, type } in original user text. Tries: offsets, exact text, normalized text, normalized case-insensitive. */
+    function findHighlightSpan(userText, h) {
+      const len = userText.length;
+      if (typeof h.start_index === "number" && typeof h.end_index === "number" && h.start_index >= 0 && h.end_index > h.start_index && h.end_index <= len) {
+        return { start: h.start_index, end: h.end_index, type: h.type };
+      }
+      const text = (h.text || "").trim();
+      if (!text) return null;
+      let idx = userText.indexOf(text);
+      if (idx !== -1) return { start: idx, end: idx + text.length, type: h.type };
+      const { normalized, mapOffset } = buildNormalizedMapping(userText);
+      const normText = normalizeForMatch(text);
+      idx = normalized.indexOf(normText);
+      if (idx !== -1) {
+        const endNorm = idx + normText.length;
+        const startOrig = mapOffset(idx);
+        const endOrig = endNorm <= normalized.length ? (mapOffset(endNorm - 1) + 1) : startOrig + normText.length;
+        if (startOrig >= 0 && endOrig <= len) return { start: startOrig, end: endOrig, type: h.type };
+      }
+      const lower = normalized.toLowerCase();
+      idx = lower.indexOf(normText.toLowerCase());
+      if (idx !== -1) {
+        const endNorm = idx + normText.length;
+        const startOrig = mapOffset(idx);
+        const endOrig = endNorm <= normalized.length ? (mapOffset(endNorm - 1) + 1) : startOrig + normText.length;
+        if (startOrig >= 0 && endOrig <= len) return { start: startOrig, end: endOrig, type: h.type };
+      }
+      return null;
+    }
+
+    function buildAnnotatedHtml(userText, highlights) {
+      if (!highlights || !highlights.length) return escapeHtml(userText);
+      const spans = [];
+      highlights.forEach((h) => {
+        const span = findHighlightSpan(userText, h);
+        if (span) spans.push(span);
+      });
+      spans.sort((a, b) => a.start - b.start);
+      const merged = [];
+      spans.forEach((s) => {
+        const last = merged[merged.length - 1];
+        if (last && s.start < last.end) {
+          if (s.end > last.end) last.end = s.end;
+        } else merged.push({ ...s });
+      });
+      let out = "";
+      let pos = 0;
+      merged.forEach((s) => {
+        out += escapeHtml(userText.slice(pos, s.start));
+        const label = HIGHLIGHT_LABELS[s.type] || s.type;
+        out += `<span class="highlight-wrap"><span class="highlight-${s.type}">${escapeHtml(userText.slice(s.start, s.end))}</span><span class="highlight-label highlight-label-${s.type}">${escapeHtml(label)}</span></span>`;
+        pos = s.end;
+      });
+      out += escapeHtml(userText.slice(pos));
+      return out;
+    }
+    function escapeHtml(s) {
+      const div = document.createElement("div");
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    /** Run route + weather from waypoint strings (no DOM). Updates routeSegments, map, segment list. destStrs: array of strings (place names). */
+    async function runRouteFromWaypoints(startStr, destStrs, profile, statusEl) {
+      const listEl = document.getElementById("route-segments-list");
+      const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
+      if (!startStr || !destStrs || !destStrs.length) return false;
+      const profileSelect = document.getElementById("route-profile");
+      if (profileSelect) profileSelect.value = profile;
+      const osrmProfile = { walking: "foot", cycling: "bike", driving: "driving" }[profile] || "foot";
+      setStatus("Geocoding…");
+      const allQueries = [startStr, ...destStrs];
+      const coords = [];
+      const names = [];
+      for (let i = 0; i < allQueries.length; i++) {
+        setStatus(`Geocoding ${i + 1}/${allQueries.length}…`);
+        const result = await geocode(allQueries[i]);
+        if (!result) {
+          setStatus(`Could not find: "${allQueries[i]}"`);
+          return false;
+        }
+        coords.push([result.lon, result.lat]);
+        names.push(result.name);
+      }
+      setStatus("Routing…");
+      const coordStr = coords.map((c) => c.join(",")).join(";");
+      let res;
+      try {
+        res = await fetch(`${OSRM_BASE}/${osrmProfile}/${coordStr}?overview=full&geometries=geojson`);
+      } catch (e) {
+        setStatus("Route request failed.");
+        return false;
+      }
+      if (!res.ok) {
+        setStatus("No route found.");
+        return false;
+      }
+      const data = await res.json();
+      const route = data.routes && data.routes[0];
+      if (!route || !route.geometry || !route.legs || !route.legs.length) {
+        setStatus("No route geometry.");
+        return false;
+      }
+      const fullGeometry = route.geometry.coordinates || [];
+      const waypoints = names.map((name, i) => ({ name, lat: coords[i][1], lon: coords[i][0] }));
+      const speedMs = PROFILE_SPEED_MS[osrmProfile] || PROFILE_SPEED_MS.foot;
+      const legs = route.legs.map((leg, i) => {
+        const pts = [];
+        if (leg.steps && leg.steps.length) {
+          leg.steps.forEach((step) => {
+            const g = step.geometry && step.geometry.coordinates;
+            if (g) g.forEach((c) => pts.push(c));
+          });
+        }
+        const distance_m = leg.distance || 0;
+        const duration_sec = speedMs > 0 ? Math.round(distance_m / speedMs) : (leg.duration || 0);
+        return { fromIndex: i, toIndex: i + 1, duration_sec, distance_m, geometry: pts.length ? pts : fullGeometry };
+      });
+      const totalDurationSec = legs.reduce((sum, leg) => sum + leg.duration_sec, 0);
+      legs.forEach((leg) => {
+        leg.time_weight = totalDurationSec > 0 ? leg.duration_sec / totalDurationSec : 0;
+        leg.indoor_outdoor = "outdoor";
+      });
+      routeSegments = { waypoints, legs, fullGeometry };
+      initMap();
+      if (routeLayer) routeLayer.clearLayers();
+      const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
+      L.polyline(latLngs, { color: "#000", weight: 4 }).addTo(routeLayer);
+      waypoints.forEach((wp, i) => {
+        L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() }).bindTooltip(i === 0 ? "Start" : `Dest ${i}`, { permanent: false }).addTo(routeLayer);
+      });
+      if (map && latLngs.length) map.fitBounds(latLngs, { padding: [20, 20] });
+      updateSegmentsList(waypoints, legs);
+      if (listEl) listEl.style.display = "block";
+      updateStep2FromRoute();
+      updateStep2SegmentTable();
+      setStatus("Fetching weather…");
+      for (let i = 0; i < legs.length; i++) {
+        const leg = legs[i];
+        const fromWp = waypoints[leg.fromIndex];
+        const toWp = waypoints[leg.toIndex];
+        const midLat = (fromWp.lat + toWp.lat) / 2;
+        const midLon = (fromWp.lon + toWp.lon) / 2;
+        leg.weather = await fetchWeather(midLat, midLon);
+        if (i < legs.length - 1) await new Promise((r) => setTimeout(r, 200));
+      }
+      updateSegmentsList(waypoints, legs);
+      updateStep2FromRoute();
+      updateStep2SegmentTable();
+      setStatus(`Route: ${(route.distance / 1000).toFixed(1)} km, ${Math.round(totalDurationSec / 60)} min.`);
+      return true;
+    }
+
+    /** Merge extracted labels and stay_min into routeSegments.waypoints. Call after runRouteFromWaypoints when extraction had destinations as objects. */
+    function mergeExtractionIntoRouteSegments(extracted) {
+      if (!routeSegments || !routeSegments.waypoints || !extracted) return;
+      const waypoints = routeSegments.waypoints;
+      waypoints[0].label = extracted.start_label || null;
+      waypoints[0].stay_min = extracted.start_stay_min != null ? extracted.start_stay_min : 0;
+      const dests = extracted.destinations || [];
+      for (let i = 1; i < waypoints.length; i++) {
+        const d = dests[i - 1];
+        waypoints[i].label = (d && typeof d.label === "string") ? d.label : null;
+        waypoints[i].stay_min = (d && typeof d.stay_min === "number") ? d.stay_min : (d && d.stay_min != null ? parseInt(d.stay_min, 10) : 30);
+        if (waypoints[i].stay_min !== waypoints[i].stay_min) waypoints[i].stay_min = 30;
+      }
+    }
+
+    /** Populate Start and Destination inputs from extracted waypoints (for display/edit). destStrs can be string[] or {name,label?,stay_min?}[]. */
+    function populateWaypointInputs(startStr, destStrs) {
+      const startInput = document.getElementById("route-start");
+      const container = document.getElementById("destinations-container");
+      if (!startInput || !container) return;
+      startInput.value = startStr || "";
+      startInput.removeAttribute("data-geo-lat");
+      startInput.removeAttribute("data-geo-lon");
+      const destList = Array.isArray(destStrs) ? destStrs.map((d) => (typeof d === "object" && d && d.name != null) ? d.name : String(d)) : [];
+      let rows = container.querySelectorAll(".waypoint-row");
+      while (rows.length < destList.length) {
+        addDestinationRow();
+        rows = container.querySelectorAll(".waypoint-row");
+      }
+      rows.forEach((row, i) => {
+        const input = row.querySelector(".address-wrap input");
+        if (input) {
+          input.value = destList[i] || "";
+          input.removeAttribute("data-geo-lat");
+          input.removeAttribute("data-geo-lon");
+        }
+      });
+    }
+
+    function updateStep1Annotated(userText, highlights) {
+      const annotatedEl = document.getElementById("step1-annotated");
+      const legendEl = document.getElementById("step1-legend");
+      const emptyEl = document.getElementById("step1-empty");
+      if (!annotatedEl) return;
+      if (!userText) {
+        annotatedEl.innerHTML = "";
+        if (legendEl) legendEl.style.display = "none";
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+      }
+      annotatedEl.innerHTML = buildAnnotatedHtml(userText, highlights || []);
+      if (legendEl) legendEl.style.display = highlights && highlights.length ? "flex" : "none";
+      if (emptyEl) emptyEl.style.display = "none";
+    }
+
+    function updateStep2FromRoute() {
+      updateStep2Timeline();
+    }
+
+    function updateStep2Timeline() {
+      const timelineEl = document.getElementById("step2-timeline");
+      const emptyEl = document.getElementById("step2-empty");
+      if (!timelineEl) return;
+      const segs = typeof window.__routeSegments === "function" ? window.__routeSegments() : null;
+      const waypoints = segs?.waypoints || [];
+      const legs = segs?.legs || [];
+      if (!waypoints.length || !legs.length) {
+        timelineEl.innerHTML = "";
+        timelineEl.style.display = "none";
+        if (emptyEl) emptyEl.style.display = "block";
+        const wrap = document.getElementById("step2-segment-details");
+        if (wrap) wrap.style.display = "none";
+        return;
+      }
+      const totalTravelMin = legs.reduce((sum, leg) => sum + (leg.duration_sec || 0) / 60, 0);
+      const totalStayMin = waypoints.reduce((sum, wp) => sum + (wp.stay_min != null ? wp.stay_min : (wp === waypoints[0] ? 0 : 30)), 0);
+      const totalMin = totalTravelMin + totalStayMin;
+      const pct = (part, total) => (total > 0 ? ((part / total) * 100).toFixed(1) : "0");
+      function formatStay(min) {
+        const m = Number(min);
+        if (!Number.isFinite(m) || m < 0) return "0 min";
+        if (m >= 60) return Math.floor(m / 60) + "h " + (m % 60) + " min";
+        return m + " min";
+      }
+      const parts = [];
+      for (let i = 0; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        const stayMin = wp.stay_min != null ? wp.stay_min : (i === 0 ? 0 : 30);
+        const label = wp.label || (i === 0 ? "Start" : "Location " + (i + 1));
+        const legForWeather = legs[Math.min(i, legs.length - 1)];
+        const w = legForWeather?.weather;
+        const weatherStr = w ? (w.temp != null ? w.temp.toFixed(1) : "—") + "°C, " + (w.wind_speed != null ? w.wind_speed.toFixed(1) : "—") + " m/s wind, " + (w.humidity != null ? w.humidity : "—") + "% hum" : "—";
+        const stayPct = totalMin > 0 ? pct(stayMin, totalMin) : "0";
+        parts.push('<div class="timeline-block timeline-location">');
+        parts.push('<div class="timeline-title">Location ' + (i + 1) + ': ' + escapeHtml(label) + ': ' + escapeHtml(wp.name || "") + '</div>');
+        parts.push('<div class="timeline-meta">(' + formatStay(stayMin) + ', ' + stayPct + '% of time)</div>');
+        parts.push('<div class="timeline-weather">Weather: ' + weatherStr + '</div>');
+        parts.push('<div class="timeline-meta">Context: Indoor;</div>');
+        parts.push('</div>');
+        if (i < legs.length) {
+          const leg = legs[i];
+          const fromWp = waypoints[leg.fromIndex];
+          const toWp = waypoints[leg.toIndex];
+          const fromLabel = fromWp?.label ? escapeHtml(fromWp.label) + ": " : "";
+          const toLabel = toWp?.label ? escapeHtml(toWp.label) + ": " : "";
+          const legMin = (leg.duration_sec || 0) / 60;
+          const legPct = totalMin > 0 ? pct(legMin, totalMin) : "0";
+          const distKm = leg.distance_m != null ? (leg.distance_m / 1000).toFixed(2) : "—";
+          const lw = leg.weather;
+          const legWeatherStr = lw ? (lw.temp != null ? lw.temp.toFixed(1) : "—") + "°C, " + (lw.wind_speed != null ? lw.wind_speed.toFixed(1) : "—") + " m/s wind, " + (lw.humidity != null ? lw.humidity : "—") + "% hum" : "—";
+          parts.push('<div class="timeline-block timeline-leg">');
+          parts.push('<div class="timeline-title">Leg ' + (i + 1) + ': ' + fromLabel + escapeHtml(fromWp?.name || "") + ' → ' + toLabel + escapeHtml(toWp?.name || "") + '</div>');
+          parts.push('<div class="timeline-meta">(' + Math.round(legMin) + ' min, ' + distKm + ' km, ' + legPct + '% of time)</div>');
+          parts.push('<div class="timeline-weather">Weather: ' + legWeatherStr + '</div>');
+          parts.push('<div class="timeline-meta">Context: ' + (leg.indoor_outdoor === "indoor" ? "Indoor" : "Outdoor") + ';</div>');
+          parts.push('</div>');
+        }
+      }
+      timelineEl.innerHTML = parts.join("");
+      timelineEl.style.display = "block";
+      if (emptyEl) emptyEl.style.display = "none";
+      const wrap = document.getElementById("step2-segment-details");
+      if (wrap) wrap.style.display = "none";
+    }
+
+    function updateStep2SegmentTable() {
+      updateStep2Timeline();
+    }
+
+    async function calculateRoute() {
+      const startInput = document.getElementById("route-start");
+      const statusEl = document.getElementById("route-status");
+      const listEl = document.getElementById("route-segments-list");
+      const ulEl = document.getElementById("route-segments-ul");
+      const btn = document.getElementById("calculate-route-btn");
+      const profileSelect = document.getElementById("route-profile");
+      if (!startInput || !statusEl || !btn) return;
+      const startQ = (startInput.value || "").trim();
+      const destInputs = getDestInputsInOrder();
+      const destQs = destInputs.map((i) => (i.value || "").trim()).filter(Boolean);
+      if (!startQ || destQs.length === 0) {
+        statusEl.textContent = "Enter a start and at least one destination.";
+        return;
+      }
+      const profile = (profileSelect && profileSelect.value) || "walking";
+      const osrmProfile = { walking: "foot", cycling: "bike", driving: "driving" }[profile] || "foot";
+      btn.disabled = true;
+      statusEl.textContent = "Resolving addresses…";
+      const allInputs = [startInput, ...destInputs];
+      const coords = [];
+      const names = [];
+      for (let i = 0; i < allInputs.length; i++) {
+        const input = allInputs[i];
+        const q = (input.value || "").trim();
+        if (!q) continue;
+        const lat = input.dataset.geoLat != null ? parseFloat(input.dataset.geoLat) : NaN;
+        const lon = input.dataset.geoLon != null ? parseFloat(input.dataset.geoLon) : NaN;
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+          coords.push([lon, lat]);
+          names.push(q);
+          continue;
+        }
+        statusEl.textContent = `Geocoding ${i + 1}/${allInputs.length}…`;
+        const result = await geocode(q);
+        if (!result) {
+          statusEl.textContent = `Could not find: "${q}"`;
+          btn.disabled = false;
+          return;
+        }
+        coords.push([result.lon, result.lat]);
+        names.push(result.name);
+      }
+      statusEl.textContent = "Routing…";
+      const coordStr = coords.map((c) => c.join(",")).join(";");
+      const osrmUrl = `${OSRM_BASE}/${osrmProfile}/${coordStr}?overview=full&geometries=geojson`;
+      let res;
+      try {
+        res = await fetch(osrmUrl);
+      } catch (e) {
+        statusEl.textContent = "Route request failed.";
+        btn.disabled = false;
+        return;
+      }
+      if (!res.ok) {
+        statusEl.textContent = "No route found between these points.";
+        btn.disabled = false;
+        return;
+      }
+      const data = await res.json();
+      const route = data.routes && data.routes[0];
+      if (!route || !route.geometry || !route.legs || route.legs.length === 0) {
+        statusEl.textContent = "No route geometry returned.";
+        btn.disabled = false;
+        return;
+      }
+      const fullGeometry = route.geometry.coordinates || [];
+      const waypoints = names.map((name, i) => ({
+        name,
+        lat: coords[i][1],
+        lon: coords[i][0]
+      }));
+      const speedMs = PROFILE_SPEED_MS[osrmProfile] || PROFILE_SPEED_MS.foot;
+      const legs = route.legs.map((leg, i) => {
+        const pts = [];
+        if (leg.steps && leg.steps.length) {
+          leg.steps.forEach((step) => {
+            const g = step.geometry && step.geometry.coordinates;
+            if (g) g.forEach((c) => pts.push(c));
+          });
+        }
+        const distance_m = leg.distance || 0;
+        const duration_sec = speedMs > 0 ? Math.round(distance_m / speedMs) : (leg.duration || 0);
+        return {
+          fromIndex: i,
+          toIndex: i + 1,
+          duration_sec,
+          distance_m,
+          geometry: pts.length ? pts : fullGeometry
+        };
+      });
+      const totalDurationSec = legs.reduce((sum, leg) => sum + leg.duration_sec, 0);
+      legs.forEach((leg) => {
+        leg.time_weight = totalDurationSec > 0 ? leg.duration_sec / totalDurationSec : 0;
+        leg.indoor_outdoor = "outdoor";
+      });
+      routeSegments = { waypoints, legs, fullGeometry };
+      initMap();
+      if (routeLayer) routeLayer.clearLayers();
+      const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
+      L.polyline(latLngs, { color: "#000", weight: 4 }).addTo(routeLayer);
+      waypoints.forEach((wp, i) => {
+        L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() })
+          .bindTooltip(i === 0 ? "Start" : `Dest ${i}`, { permanent: false })
+          .addTo(routeLayer);
+      });
+      if (map && latLngs.length) map.fitBounds(latLngs, { padding: [20, 20] });
+      updateSegmentsList(waypoints, legs);
+      updateStep2FromRoute();
+      updateStep2SegmentTable();
+      listEl.style.display = "block";
+      statusEl.textContent = `Route: ${(route.distance / 1000).toFixed(1)} km, ${Math.round(totalDurationSec / 60)} min (${profile}). Fetching weather…`;
+      for (let i = 0; i < legs.length; i++) {
+        const leg = legs[i];
+        const fromWp = waypoints[leg.fromIndex];
+        const toWp = waypoints[leg.toIndex];
+        const midLat = (fromWp.lat + toWp.lat) / 2;
+        const midLon = (fromWp.lon + toWp.lon) / 2;
+        leg.weather = await fetchWeather(midLat, midLon);
+        if (i < legs.length - 1) await new Promise((r) => setTimeout(r, 200));
+      }
+      updateSegmentsList(waypoints, legs);
+      updateStep2SegmentTable();
+      statusEl.textContent = `Route: ${(route.distance / 1000).toFixed(1)} km, ${Math.round(totalDurationSec / 60)} min (${profile}).`;
+      btn.disabled = false;
+    }
+
+    function updateSegmentsList(waypoints, legs) {
+      const ul = document.getElementById("route-segments-ul");
+      if (!ul) return;
+      ul.innerHTML = "";
+      legs.forEach((leg, i) => {
+        const fromName = waypoints[leg.fromIndex]?.name || `Waypoint ${leg.fromIndex}`;
+        const toName = waypoints[leg.toIndex]?.name || `Waypoint ${leg.toIndex}`;
+        const min = Math.round(leg.duration_sec / 60);
+        const km = (leg.distance_m / 1000).toFixed(2);
+        const weightPct = leg.time_weight != null ? (leg.time_weight * 100).toFixed(0) : "";
+        const w = leg.weather;
+        const weatherStr = w ? `${w.temp}°C, ${w.wind_speed.toFixed(1)} m/s wind, ${w.humidity}% hum` : "—";
+        const li = document.createElement("li");
+        li.className = "segment-item";
+        li.innerHTML = "";
+        const line1 = document.createElement("div");
+        line1.className = "segment-title";
+        line1.textContent = `Leg ${i + 1}: ${fromName} → ${toName} (${min} min, ${km} km${weightPct ? `, ${weightPct}% of time` : ""})`;
+        li.appendChild(line1);
+        const line2 = document.createElement("div");
+        line2.className = "segment-weather";
+        line2.textContent = `Weather: ${weatherStr}`;
+        li.appendChild(line2);
+        const row = document.createElement("div");
+        row.className = "segment-context-row";
+        const label = document.createElement("label");
+        label.textContent = "Context: ";
+        label.style.marginRight = "4px";
+        const select = document.createElement("select");
+        select.className = "segment-indoor-outdoor";
+        select.dataset.legIndex = String(i);
+        ["outdoor", "indoor", "transit"].forEach((val) => {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+          if ((leg.indoor_outdoor || "outdoor") === val) opt.selected = true;
+          select.appendChild(opt);
+        });
+        select.addEventListener("change", () => {
+          const idx = parseInt(select.dataset.legIndex, 10);
+          if (!Number.isNaN(idx) && routeSegments.legs[idx]) routeSegments.legs[idx].indoor_outdoor = select.value;
+        });
+        row.appendChild(label);
+        row.appendChild(select);
+        li.appendChild(row);
+        ul.appendChild(li);
+      });
+    }
+
+    function setupAddressAutocomplete(inputEl, dropdownEl) {
+      if (!inputEl || !dropdownEl) return;
+      let debounceTimer = null;
+      let lastQuery = "";
+
+      function closeAllDropdowns() {
+        document.querySelectorAll(".address-dropdown.is-open").forEach((d) => d.classList.remove("is-open"));
+      }
+
+      function showResults(results) {
+        dropdownEl.innerHTML = "";
+        if (!results.length) {
+          dropdownEl.classList.remove("is-open");
+          return;
+        }
+        results.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "address-dropdown-item";
+          div.textContent = item.name;
+          div.addEventListener("click", () => {
+            inputEl.value = item.name;
+            inputEl.dataset.geoLat = String(item.lat);
+            inputEl.dataset.geoLon = String(item.lon);
+            dropdownEl.classList.remove("is-open");
+            inputEl.blur();
+          });
+          dropdownEl.appendChild(div);
+        });
+        closeAllDropdowns();
+        dropdownEl.classList.add("is-open");
+      }
+
+      inputEl.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        const q = (inputEl.value || "").trim();
+        if (q.length < 2) {
+          dropdownEl.classList.remove("is-open");
+          return;
+        }
+        debounceTimer = setTimeout(async () => {
+          lastQuery = q;
+          const results = await searchNominatim(q);
+          if ((inputEl.value || "").trim() === lastQuery) showResults(results);
+        }, 400);
+      });
+
+      inputEl.addEventListener("focus", () => {
+        if (dropdownEl.children.length) dropdownEl.classList.add("is-open");
+      });
+
+      inputEl.addEventListener("blur", () => {
+        setTimeout(() => dropdownEl.classList.remove("is-open"), 150);
+      });
+    }
+
+    function addDestinationRow() {
+      const container = document.getElementById("destinations-container");
+      if (!container) return;
+      const rows = container.querySelectorAll(".waypoint-row");
+      const nextIndex = rows.length;
+      const label = document.createElement("label");
+      label.textContent = `Destination ${nextIndex + 1}`;
+      const row = document.createElement("div");
+      row.className = "waypoint-row";
+      const wrap = document.createElement("div");
+      wrap.className = "address-wrap";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.setAttribute("data-dest-index", String(nextIndex));
+      input.placeholder = "e.g. address or place name";
+      input.setAttribute("autocomplete", "off");
+      const dropdown = document.createElement("div");
+      dropdown.className = "address-dropdown";
+      wrap.appendChild(input);
+      wrap.appendChild(dropdown);
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "remove-wp";
+      removeBtn.setAttribute("data-dest-index", String(nextIndex));
+      removeBtn.setAttribute("aria-label", "Remove");
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", () => {
+        row.remove();
+        label.remove();
+      });
+      row.appendChild(wrap);
+      row.appendChild(removeBtn);
+      container.appendChild(label);
+      container.appendChild(row);
+      setupAddressAutocomplete(input, dropdown);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      const startInput = document.getElementById("route-start");
+      const startDropdown = document.getElementById("route-start-dropdown");
+      if (startInput && startDropdown) setupAddressAutocomplete(startInput, startDropdown);
+      getDestInputsInOrder().forEach((input) => {
+        const dropdown = input.closest(".address-wrap")?.querySelector(".address-dropdown");
+        if (dropdown) setupAddressAutocomplete(input, dropdown);
+      });
+      document.getElementById("add-dest-btn")?.addEventListener("click", addDestinationRow);
+      document.getElementById("calculate-route-btn")?.addEventListener("click", () => calculateRoute());
+      document.getElementById("destinations-container")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest(".remove-wp");
+        if (!btn) return;
+        const row = btn.closest(".waypoint-row");
+        const label = row?.previousElementSibling;
+        if (row) row.remove();
+        if (label && label.tagName === "LABEL") label.remove();
+      });
+    });
+
+    // Expose for later steps (weather per segment, metrics aggregation)
+    window.__routeSegments = () => routeSegments;
+
+    // —— Spec formulas: fixed bounds + aggregation + compute (SPEC-FORMULAS.md) ——
+    const SPEC = {
+      Tmin: -10,
+      Tmax: 40,
+      max_wind: 20,
+      max_humidity: 100,
+      max_exposure_hours: 8
+    };
+
+    /** Time-weighted aggregate env from route segments (legs + stay-at-location). Uses waypoints[].stay_min when present. */
+    function aggregateRouteEnv(segments) {
+      const legs = segments?.legs || [];
+      const waypoints = segments?.waypoints || [];
+      if (!legs.length) return null;
+      const combined = [];
+      for (let i = 0; i < waypoints.length; i++) {
+        const stayMin = waypoints[i].stay_min != null ? waypoints[i].stay_min : (i === 0 ? 0 : 30);
+        if (stayMin > 0) {
+          const legForWeather = legs[Math.min(i, legs.length - 1)];
+          combined.push({
+            duration_sec: stayMin * 60,
+            weather: legForWeather?.weather || null,
+            indoor_outdoor: "indoor"
+          });
+        }
+      }
+      legs.forEach((leg) => {
+        combined.push({
+          duration_sec: leg.duration_sec ?? 0,
+          weather: leg.weather || null,
+          indoor_outdoor: leg.indoor_outdoor || "outdoor"
+        });
+      });
+      const totalDuration = combined.reduce((sum, s) => sum + (s.duration_sec || 0), 0);
+      if (totalDuration <= 0) return null;
+      combined.forEach((s) => {
+        s.time_weight = (s.duration_sec || 0) / totalDuration;
+      });
+      let tempSum = 0, windSum = 0, humiditySum = 0, totalWeight = 0;
+      let outdoorSeconds = 0;
+      for (const seg of combined) {
+        const w = seg.time_weight ?? 0;
+        if (seg.indoor_outdoor === "outdoor") outdoorSeconds += seg.duration_sec ?? 0;
+        const weather = seg.weather;
+        if (weather) {
+          tempSum += (weather.temp ?? 15) * w;
+          windSum += (weather.wind_speed ?? 0) * w;
+          humiditySum += (weather.humidity ?? 50) * w;
+          totalWeight += w;
+        }
+      }
+      if (totalWeight <= 0) return null;
+      return {
+        temp_avg: tempSum / totalWeight,
+        wind_avg: windSum / totalWeight,
+        humidity_avg: humiditySum / totalWeight,
+        outdoor_seconds: outdoorSeconds,
+        total_duration_sec: totalDuration,
+        outdoor_fraction: totalDuration > 0 ? outdoorSeconds / totalDuration : 0
+      };
+    }
+
+    /** Compute all 8 spec metrics (Fit, Mesh, Thickness, Airflow, Support, Comfort, DressLength, DressSize) from env + norms. Clamps to [0,1]. */
+    function computeSpecMetricsFromEnv(agg, norms) {
+      const n = (x) => (typeof x === "number" && !Number.isNaN(x) ? Math.max(0, Math.min(1, x)) : 0.5);
+      const Tmin = SPEC.Tmin, Tmax = SPEC.Tmax, maxW = SPEC.max_wind, maxH = SPEC.max_humidity, maxE = SPEC.max_exposure_hours * 3600;
+      const tempNormCold = (Tmax - agg.temp_avg) / (Tmax - Tmin);
+      const tempNormHot = (agg.temp_avg - Tmin) / (Tmax - Tmin);
+      const windNorm = Math.min(1, agg.wind_avg / maxW);
+      const humidityNorm = Math.min(1, agg.humidity_avg / maxH);
+      const exposureNorm = Math.min(1, agg.outdoor_seconds / maxE);
+      const spatialNorm = agg.outdoor_fraction;
+      const outdoorNorm = agg.outdoor_fraction;
+
+      const act = n(norms.activity_norm);
+      const form = n(norms.formality_norm);
+      const aest = n(norms.aesthetic_norm);
+      const comfortPref = n(norms.comfort_pref_norm);
+      const contain = n(norms.containment_norm);
+      const demand = n(norms.demand_norm);
+      const stability = n(norms.stability_norm);
+
+      const Fit = n(1 - (0.30 * tempNormCold - 0.25 * act + 0.15 * (1 - comfortPref) + 0.20 * contain + 0.10 * spatialNorm));
+      const Mesh = n(0.35 * tempNormCold + 0.25 * (1 - act) + 0.20 * form + 0.20 * aest);
+      const Thickness = n(0.50 * tempNormCold + 0.25 * windNorm + 0.25 * exposureNorm);
+      const Airflow = n(1 - (0.35 * tempNormHot + 0.25 * humidityNorm + 0.25 * act - 0.15 * outdoorNorm));
+      const Support = n(0.35 * demand + 0.25 * stability + 0.25 * form + 0.15 * windNorm);
+      const Comfort = n(0.30 * form + 0.25 * aest + 0.25 * comfortPref + 0.20 * (1 - act));
+      const DressLength = n(0.40 * form + 0.35 * tempNormCold + 0.25 * aest);
+      const DressSize = n(0.35 * form + 0.30 * (1 - act) + 0.20 * aest + 0.15 * (1 - demand));
+
+      const r2 = (v) => (typeof v === "number" ? v.toFixed(2) : String(v));
+      const breakdown = {
+        env: { temp_avg: r2(agg.temp_avg), wind_avg: r2(agg.wind_avg), humidity_avg: r2(agg.humidity_avg), outdoor_fraction: r2(agg.outdoor_fraction), outdoor_seconds: Math.round(agg.outdoor_seconds) },
+        norms: { activity_norm: r2(act), formality_norm: r2(form), aesthetic_norm: r2(aest), comfort_pref_norm: r2(comfortPref), containment_norm: r2(contain), demand_norm: r2(demand), stability_norm: r2(stability) },
+        Fit: { formulaWithNumbers: `1 − (0.30×temp_norm_cold: ${r2(tempNormCold)} − 0.25×activity_norm: ${r2(act)} + 0.15×(1−comfort_pref_norm: ${r2(comfortPref)}) + 0.20×containment_norm: ${r2(contain)} + 0.10×spatial_norm: ${r2(spatialNorm)})`, value: r2(Fit), inputs: { temp_norm_cold: r2(tempNormCold), activity_norm: r2(act), comfort_pref_norm: r2(comfortPref), containment_norm: r2(contain), spatial_norm: r2(spatialNorm) } },
+        Mesh: { formulaWithNumbers: `0.35×temp_norm_cold: ${r2(tempNormCold)} + 0.25×(1−activity_norm: ${r2(act)}) + 0.20×formality_norm: ${r2(form)} + 0.20×aesthetic_norm: ${r2(aest)}`, value: r2(Mesh), inputs: { temp_norm_cold: r2(tempNormCold), activity_norm: r2(act), formality_norm: r2(form), aesthetic_norm: r2(aest) } },
+        Thickness: { formulaWithNumbers: `0.50×temp_norm_cold: ${r2(tempNormCold)} + 0.25×wind_norm: ${r2(windNorm)} + 0.25×exposure_norm: ${r2(exposureNorm)}`, value: r2(Thickness), inputs: { temp_norm_cold: r2(tempNormCold), wind_norm: r2(windNorm), exposure_norm: r2(exposureNorm) } },
+        Airflow: { formulaWithNumbers: `1 − (0.35×temp_norm_hot: ${r2(tempNormHot)} + 0.25×humidity_norm: ${r2(humidityNorm)} + 0.25×activity_norm: ${r2(act)} − 0.15×outdoor_norm: ${r2(outdoorNorm)})`, value: r2(Airflow), inputs: { temp_norm_hot: r2(tempNormHot), humidity_norm: r2(humidityNorm), activity_norm: r2(act), outdoor_norm: r2(outdoorNorm) } },
+        Support: { formulaWithNumbers: `0.35×demand_norm: ${r2(demand)} + 0.25×stability_norm: ${r2(stability)} + 0.25×formality_norm: ${r2(form)} + 0.15×wind_norm: ${r2(windNorm)}`, value: r2(Support), inputs: { demand_norm: r2(demand), stability_norm: r2(stability), formality_norm: r2(form), wind_norm: r2(windNorm) } },
+        Comfort: { formulaWithNumbers: `0.30×formality_norm: ${r2(form)} + 0.25×aesthetic_norm: ${r2(aest)} + 0.25×comfort_pref_norm: ${r2(comfortPref)} + 0.20×(1−activity_norm: ${r2(act)})`, value: r2(Comfort), inputs: { formality_norm: r2(form), aesthetic_norm: r2(aest), comfort_pref_norm: r2(comfortPref), activity_norm: r2(act) } },
+        DressLength: { formulaWithNumbers: `0.40×formality_norm: ${r2(form)} + 0.35×temp_norm_cold: ${r2(tempNormCold)} + 0.25×aesthetic_norm: ${r2(aest)}`, value: r2(DressLength), inputs: { formality_norm: r2(form), temp_norm_cold: r2(tempNormCold), aesthetic_norm: r2(aest) } },
+        DressSize: { formulaWithNumbers: `0.35×formality_norm: ${r2(form)} + 0.30×(1−activity_norm: ${r2(act)}) + 0.20×aesthetic_norm: ${r2(aest)} + 0.15×(1−demand_norm: ${r2(demand)})`, value: r2(DressSize), inputs: { formality_norm: r2(form), activity_norm: r2(act), aesthetic_norm: r2(aest), demand_norm: r2(demand) } }
+      };
+      return { Fit, Mesh, Thickness, Airflow, Support, Comfort, DressLength, DressSize, breakdown };
+    }
+
     let OPENAI_API_KEY = "";
     let apiKeyLoaded = false;
     let apiKeyPromise = null;
@@ -376,19 +1538,75 @@
       });
     }
 
+    function updateCalculationProcessDisplay() {
+      const el = document.getElementById("calculation-process");
+      const emptyEl = document.getElementById("step3-empty");
+      if (!el) return;
+      if (!lastMetricBreakdown) {
+        el.innerHTML = "";
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+      }
+      if (emptyEl) emptyEl.style.display = "none";
+      const r2 = (v) => (typeof v === "number" ? v.toFixed(2) : String(v));
+      const esc = (s) => {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      };
+      const parts = [];
+
+      if (lastMetricBreakdown.fromRoute && lastMetricBreakdown.formulaBased) {
+        const fb = lastMetricBreakdown.formulaBased;
+        const metricOrder = ["Fit", "Mesh", "Thickness", "Airflow", "Support", "Comfort", "DressLength", "DressSize"];
+        metricOrder.forEach((key) => {
+          const b = fb[key];
+          if (!b) return;
+          parts.push(`<div class="calc-formula-block">`);
+          parts.push(`<div class="calc-formula-name">${esc(key)}</div>`);
+          parts.push(`<div class="calc-formula-line">${esc(b.formulaWithNumbers || "")}</div>`);
+          parts.push(`<div class="calc-formula-equals">=</div>`);
+          parts.push(`<div class="calc-formula-result">${esc(b.value)}</div>`);
+          parts.push("</div>");
+        });
+      } else {
+        parts.push("<p class=\"calc-all-llm-intro\">No route data; all 8 metrics from text (LLM).</p>");
+        if (lastMetrics) {
+          const arrow = "<span class=\"calc-flow-arrow\" aria-hidden=\"true\">→</span>";
+          ["Fit", "Mesh", "Thickness", "Airflow", "Support", "Comfort", "DressLength", "DressSize"].forEach((key) => {
+            const v = r2(lastMetrics[key]);
+            parts.push("<div class=\"calc-flow-row\">");
+            parts.push(`<span class="calc-flow-label">${esc(key)}</span>`);
+            parts.push("<span class=\"calc-flow-llm-source\">Your text</span>");
+            parts.push(arrow);
+            parts.push("<span class=\"calc-flow-llm-source\">LLM</span>");
+            parts.push(arrow);
+            parts.push(`<span class="calc-flow-result">${esc(v)}</span>`);
+            parts.push("</div>");
+          });
+        }
+      }
+      el.innerHTML = parts.join("");
+    }
+
     async function analyzeTextToMetrics(text) {
       const key = await ensureApiKey();
       if (!key || key === "PASTE_YOUR_OPENAI_API_KEY_HERE") {
         alert("Add your API key: copy api-key.example.json to api-key.json in this folder and replace the placeholder with your OpenAI key.");
         return null;
       }
-      const payload = {
-        model: "gpt-4o",
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: `You are a garment behavior interpreter. 
+      const segments = typeof window.__routeSegments === "function" ? window.__routeSegments() : null;
+      const agg = aggregateRouteEnv(segments);
+      const useRouteFormulas = agg && segments?.legs?.length > 0;
+
+      const systemPrompt = useRouteFormulas
+        ? `You are a garment behavior interpreter. We have real route/weather data for this request.
+
+Your job: read the user's situation and return (1) the 8 garment metrics (Fit, Mesh, Thickness, Airflow, Support, Comfort, DressLength, DressSize) as 0–1 values, AND (2) these intermediate norms (0–1 each) so we can compute Fit, Mesh, Thickness, Airflow, Support from the spec formulas using route weather:
+activity_norm (activity intensity: low→0, high→1), formality_norm (casual→0, formal→1), aesthetic_norm (airy→0, sleek→1), comfort_pref_norm (tight→0, loose→1), containment_norm (low need→0, high need→1), demand_norm (rest→0, active/standing→1), stability_norm (calm→0, needs support→1).
+
+Return a single JSON object with all of: Fit, Mesh, Thickness, Airflow, Support, Comfort, DressLength, DressSize, activity_norm, formality_norm, aesthetic_norm, comfort_pref_norm, containment_norm, demand_norm, stability_norm. We will overwrite Fit,Mesh,Thickness,Airflow,Support using route weather + your norms; use your Comfort, DressLength, DressSize as-is. Infer from minimal cues; use 0.5 only when no cue. Output only the JSON.`
+        : `You are a garment behavior interpreter. 
 
 Your job is to read a short paragraph describing someone's situation and convert it into 8 normalized values between 0 and 1.
 
@@ -436,9 +1654,18 @@ Use these orientations and meanings:
 Example: For "Cozy day at home" you might set Comfort high (e.g. 0.8), Thickness moderate-high (0.6), Fit looser (0.7), Airflow moderate (0.4), and vary others from context rather than all 0.5.
 
 Be consistent, numeric, and concise. 
-Output only the JSON, no explanation.`
-          },
-          { role: "user", content: text }
+Output only the JSON, no explanation.`;
+
+      const userContent = useRouteFormulas
+        ? `Route context (time-weighted): temp ${agg.temp_avg.toFixed(1)}°C, wind ${agg.wind_avg.toFixed(1)} m/s, humidity ${agg.humidity_avg.toFixed(0)}%, outdoor fraction ${(agg.outdoor_fraction * 100).toFixed(0)}%, outdoor exposure ${(agg.outdoor_seconds / 3600).toFixed(1)} h.\n\nUser description: ${text}`
+        : text;
+
+      const payload = {
+        model: "gpt-4o",
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent }
         ]
       };
 
@@ -460,33 +1687,103 @@ Output only the JSON, no explanation.`
       const data = await res.json();
       const content = data.choices?.[0]?.message?.content;
       if (!content) return null;
+      let parsed;
       try {
-        return JSON.parse(content);
+        parsed = JSON.parse(content);
       } catch (e) {
         console.error("Failed to parse JSON content", content);
         alert("Analysis returned unexpected format.");
         return null;
       }
+
+      if (useRouteFormulas && agg) {
+        const norms = {
+          activity_norm: parsed.activity_norm,
+          formality_norm: parsed.formality_norm,
+          aesthetic_norm: parsed.aesthetic_norm,
+          comfort_pref_norm: parsed.comfort_pref_norm,
+          containment_norm: parsed.containment_norm,
+          demand_norm: parsed.demand_norm,
+          stability_norm: parsed.stability_norm
+        };
+        const eight = computeSpecMetricsFromEnv(agg, norms);
+        lastMetricBreakdown = {
+          fromRoute: true,
+          env: eight.breakdown.env,
+          norms: eight.breakdown.norms,
+          formulaBased: {
+            Fit: eight.breakdown.Fit,
+            Mesh: eight.breakdown.Mesh,
+            Thickness: eight.breakdown.Thickness,
+            Airflow: eight.breakdown.Airflow,
+            Support: eight.breakdown.Support,
+            Comfort: eight.breakdown.Comfort,
+            DressLength: eight.breakdown.DressLength,
+            DressSize: eight.breakdown.DressSize
+          }
+        };
+        return {
+          Fit: eight.Fit,
+          Mesh: eight.Mesh,
+          Thickness: eight.Thickness,
+          Airflow: eight.Airflow,
+          Support: eight.Support,
+          Comfort: eight.Comfort,
+          DressLength: eight.DressLength,
+          DressSize: eight.DressSize
+        };
+      }
+      lastMetricBreakdown = { fromRoute: false, allFromLLM: true };
+      return parsed;
     }
 
     metricsForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const text = (nlInput.value || "").trim();
       if (!text) return;
-      analyzeBtn.disabled = true;
-      analyzeBtn.textContent = "Analyzing…";
+      const planBtn = document.getElementById("plan-btn");
+      const planStatus = document.getElementById("plan-status");
+      planBtn.disabled = true;
+      planStatus.textContent = "";
       try {
+        const key = await ensureApiKey();
+        if (!key || key === "PASTE_YOUR_OPENAI_API_KEY_HERE") {
+          alert("Add your API key: copy api-key.example.json to api-key.json and add your OpenAI key.");
+          return;
+        }
+        planStatus.textContent = "Extracting route from your description…";
+        const extracted = await extractLocationsFromText(text, key);
+        updateStep1Annotated(text, extracted ? extracted.highlights : null);
+        if (extracted && extracted.start && extracted.destinations && extracted.destinations.length > 0) {
+          populateWaypointInputs(extracted.start, extracted.destinations);
+          const destNames = extracted.destinations.map((d) => (typeof d === "object" && d && d.name != null) ? d.name : String(d));
+          const routeOk = await runRouteFromWaypoints(extracted.start, destNames, extracted.transit_mode, planStatus);
+          if (routeOk) mergeExtractionIntoRouteSegments(extracted);
+          if (routeOk) updateStep2Timeline();
+          if (!routeOk) planStatus.textContent = "Route failed; computing metrics from text only.";
+        } else {
+          if (planStatus) planStatus.textContent = "No multi-stop route found; computing metrics from text only.";
+          updateStep2FromRoute();
+          updateStep2SegmentTable();
+        }
+        planStatus.textContent = (planStatus.textContent || "") + " Computing metrics…";
         const result = await analyzeTextToMetrics(text);
         if (result) {
           setMetricsDisplay(result);
           lastMetrics = result;
+          updateCalculationProcessDisplay();
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "metrics", ...result }));
           }
+          planStatus.textContent = "Done. Metrics sent to Grasshopper if connected.";
+        } else {
+          planStatus.textContent = "Metrics computation failed.";
         }
+      } catch (err) {
+        console.error(err);
+        planStatus.textContent = "Error: " + (err.message || "unknown");
       } finally {
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = "Analyze text";
+        planBtn.disabled = false;
       }
     });
 
