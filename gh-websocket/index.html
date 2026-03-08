@@ -6,20 +6,32 @@
   <title>Prototype2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     * { box-sizing: border-box; }
     :root {
-      --axis-font: 'Bebas Neue', system-ui, sans-serif;
+      --axis-font: 'Poppins', system-ui, sans-serif;
+    }
+    html {
+      font-size: 14px;
     }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: 'Poppins', system-ui, sans-serif;
+      font-weight: 200;
       overflow-x: hidden;
       overflow-y: auto;
       background: #fff;
       color: #000;
+    }
+    h1, h2, h3, h4, h5, h6,
+    p, span, label,
+    button, input, textarea {
+      font-weight: 200;
+      font-family: inherit;
+      letter-spacing: 0.1em;
+      line-height: 1.5;
     }
     #ui {
       position: fixed;
@@ -41,11 +53,24 @@
     }
     #status.connected { background: #000; border-color: #000; }
     #status.disconnected { background: transparent; }
-    #received { font-size: 0.85rem; opacity: 0.9; }
+    #received { font-size: 14px; opacity: 0.9; }
+    #sim-debug { font-size: 11px; color: #666; margin-top: 4px; }
+    #sim-debug {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 10;
+      font-size: 11px;
+      color: #666;
+      background: rgba(255,255,255,0.9);
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
     #fabricate-btn {
       margin-left: auto;
       padding: 0.35rem 0.75rem;
-      font-size: 0.85rem;
+      font-size: 14px;
       color: #000;
       background: transparent;
       border: 1px solid rgba(0,0,0,0.6);
@@ -58,7 +83,7 @@
       width: 100vw;
       min-height: 100vh;
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: stretch;
     }
     #visual-panel {
@@ -67,7 +92,6 @@
       height: 100vh;
       overflow: hidden;
       background: #fff;
-      border-right: 1px solid #eee;
     }
     #canvas {
       position: absolute;
@@ -81,36 +105,42 @@
       position: relative;
       padding: 88px 24px 24px;
       background: rgba(255,255,255,0.98);
-      border-left: 1px solid #e0e0e0;
       display: flex;
       flex-direction: column;
+      align-items: stretch;
+      text-align: center;
       gap: 16px;
-      font-size: 12px;
+      font-size: 14px;
       overflow-y: auto;
+    }
+    #metrics-panel > * {
+      width: 100%;
     }
     #map {
       width: 100%;
-      height: 220px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
+      height: 360px;
+      border-radius: 0;
+      border: none;
       margin-bottom: 10px;
       background: #e8e8e8;
+      overflow: hidden;
+      filter: grayscale(1) contrast(1.2) brightness(0.95);
     }
     .minimal-marker-icon { background: none; border: none; }
     .minimal-marker-dot {
       display: block;
-      width: 10px;
-      height: 10px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      background: #000;
-      border: 2px solid #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      background: #fff;
+      border: none;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
     }
-    .route-form label { display: block; font-size: 11px; margin-bottom: 2px; color: #333; }
+    .route-form label { display: block; font-size: 14px; margin-bottom: 2px; color: #333; }
     .route-form input {
       width: 100%;
       padding: 6px 8px;
-      font-size: 12px;
+      font-size: 14px;
       border: 1px solid #ddd;
       border-radius: 4px;
       margin-bottom: 8px;
@@ -119,77 +149,117 @@
     .waypoint-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
     .waypoint-row .address-wrap { flex: 1; position: relative; }
     .waypoint-row input { flex: 1; margin-bottom: 0; }
-    .waypoint-row .remove-wp { padding: 4px 8px; font-size: 11px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
+    .waypoint-row .remove-wp { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
     .waypoint-row .remove-wp:hover { background: #eee; }
-    #add-dest-btn { padding: 4px 8px; font-size: 11px; margin-bottom: 8px; border: 1px solid #999; background: transparent; border-radius: 4px; cursor: pointer; }
+    #add-dest-btn { padding: 4px 8px; font-size: 14px; margin-bottom: 8px; border: 1px solid #999; background: transparent; border-radius: 4px; cursor: pointer; }
     #add-dest-btn:hover { background: rgba(0,0,0,0.06); }
-    #calculate-route-btn { padding: 6px 12px; font-size: 11px; border-radius: 4px; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
+    #calculate-route-btn { padding: 6px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
     #calculate-route-btn:hover { background: #333; }
     #calculate-route-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    #route-status { font-size: 11px; color: #666; margin-top: 6px; min-height: 1.2em; }
-    .pipeline-step { margin-top: 20px; padding-top: 12px; border-top: 1px solid #eee; }
+    #route-status { font-size: 14px; color: #666; margin-top: 6px; min-height: 1.2em; }
+    .pipeline-step { margin-top: 20px; padding-top: 0; border-top: none; }
     .pipeline-step-title { font-family: var(--axis-font); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px 0; }
-    .step-empty { font-size: 11px; color: #888; margin: 6px 0 0 0; font-style: italic; }
-    .step1-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; font-size: 10px; color: #555; }
+    .step-empty { font-size: 14px; color: #888; margin: 6px 0 0 0; font-style: italic; }
+    .step1-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; font-size: 14px; color: #555; }
     .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
-    .step1-annotated { font-size: 12px; line-height: 1.5; padding: 10px; background: #fafafa; border-radius: 4px; border: 1px solid #eee; text-align: left; margin: 0; text-indent: 0; }
+    .step1-annotated {
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      border: none;
+      text-align: left;
+      margin: 0;
+      text-indent: 0;
+    }
     .step1-annotated .highlight-wrap { display: inline-block; vertical-align: top; }
     .step1-annotated .highlight-wrap > span:first-child { display: inline-block; }
-    .step1-annotated .highlight-start { background: rgba(76, 175, 80, 0.35); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-destination { background: rgba(33, 150, 243, 0.35); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-transit { background: rgba(255, 152, 0, 0.35); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-weather { background: rgba(156, 39, 176, 0.25); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-activity { background: rgba(0, 188, 212, 0.3); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-comfort { background: rgba(233, 30, 99, 0.25); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-duration { background: rgba(96, 125, 139, 0.35); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-context { background: rgba(139, 195, 74, 0.35); padding: 0 2px; border-radius: 2px; }
-    .step1-annotated .highlight-label { display: block; font-size: 10px; margin-top: 1px; padding: 0 2px; border-radius: 2px; text-align: center; }
-    .step1-annotated .highlight-label-start { background: rgba(76, 175, 80, 0.35); color: #2e7d32; }
-    .step1-annotated .highlight-label-destination { background: rgba(33, 150, 243, 0.35); color: #1565c0; }
-    .step1-annotated .highlight-label-transit { background: rgba(255, 152, 0, 0.35); color: #e65100; }
-    .step1-annotated .highlight-label-weather { background: rgba(156, 39, 176, 0.25); color: #6a1b9a; }
-    .step1-annotated .highlight-label-activity { background: rgba(0, 188, 212, 0.3); color: #006064; }
-    .step1-annotated .highlight-label-comfort { background: rgba(233, 30, 99, 0.25); color: #ad1457; }
-    .step1-annotated .highlight-label-duration { background: rgba(96, 125, 139, 0.35); color: #37474f; }
-    .step1-annotated .highlight-label-context { background: rgba(139, 195, 74, 0.35); color: #558b2f; }
-    .step2-locations { font-size: 11px; margin-bottom: 8px; color: #333; }
+    .step1-annotated .highlight-start { background: rgba(200, 242, 217, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-destination { background: rgba(228, 219, 255, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-transit { background: rgba(210, 240, 255, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-weather { background: rgba(214, 229, 255, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-activity { background: rgba(215, 251, 244, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-comfort { background: rgba(255, 228, 239, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-duration { background: rgba(226, 232, 255, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-context { background: rgba(222, 245, 255, 0.95); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-label { display: block; font-size: 14px; margin-top: 1px; padding: 0 2px; border-radius: 0; text-align: center; }
+    .step1-annotated .highlight-label-start { background: rgba(200, 242, 217, 0.95); color: #2f6f4e; }
+    .step1-annotated .highlight-label-destination { background: rgba(228, 219, 255, 0.95); color: #5a53a3; }
+    .step1-annotated .highlight-label-transit { background: rgba(210, 240, 255, 0.95); color: #0f6a78; }
+    .step1-annotated .highlight-label-weather { background: rgba(214, 229, 255, 0.95); color: #425b9a; }
+    .step1-annotated .highlight-label-activity { background: rgba(215, 251, 244, 0.95); color: #247c6c; }
+    .step1-annotated .highlight-label-comfort { background: rgba(255, 228, 239, 0.95); color: #b2577f; }
+    .step1-annotated .highlight-label-duration { background: rgba(226, 232, 255, 0.95); color: #4d5b99; }
+    .step1-annotated .highlight-label-context { background: rgba(222, 245, 255, 0.95); color: #3a6f80; }
+    .step2-locations { font-size: 14px; margin-bottom: 8px; color: #333; }
     .step2-locations .loc-line { margin: 2px 0; }
     .segment-details-table-wrap { overflow-x: auto; margin-top: 6px; }
-    .segment-details-table { width: 100%; font-size: 10px; border-collapse: collapse; }
+    .segment-details-table { width: 100%; font-size: 14px; border-collapse: collapse; }
     .segment-details-table th, .segment-details-table td { padding: 4px 6px; border: 1px solid #ddd; text-align: left; }
     .segment-details-table th { background: #f5f5f5; font-weight: 600; }
-    .step2-timeline { font-size: 11px; margin-bottom: 8px; }
-    .step2-timeline .timeline-block { margin-bottom: 12px; padding: 8px 10px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; }
-    .step2-timeline .timeline-block.timeline-location { border-left: 3px solid #2196f3; }
-    .step2-timeline .timeline-block.timeline-leg { border-left: 3px solid #4caf50; }
+    .step2-timeline { font-size: 14px; margin-bottom: 8px; }
+    .step2-timeline .timeline-block {
+      margin-bottom: 10px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+    }
+    .step2-timeline .timeline-block.timeline-location { border-left: none; }
+    .step2-timeline .timeline-block.timeline-leg { border-left: none; }
     .step2-timeline .timeline-title { font-weight: 600; margin-bottom: 4px; }
     .step2-timeline .timeline-meta { color: #555; margin: 2px 0; }
-    .step2-timeline .timeline-weather { font-size: 10px; color: #666; margin: 2px 0; }
-    .route-advanced { margin-top: 12px; font-size: 11px; }
+    .step2-timeline .timeline-weather { font-size: 14px; color: #666; margin: 2px 0; }
+    .streetview-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin: 8px 0;
+      padding: 0;
+      width: 100%;
+    }
+    .streetview-strip img.streetview-grid-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 4px;
+      filter: grayscale(1);
+      background: #eee;
+      display: block;
+    }
+    .streetview-strip .streetview-attribution {
+      grid-column: 1 / -1;
+      font-size: 10px;
+      color: #888;
+      margin-top: 4px;
+      text-align: right;
+    }
+    .route-advanced { margin-top: 12px; font-size: 14px; }
     .route-advanced summary { cursor: pointer; color: #666; }
-    .calculation-process-box { font-size: 10px; color: #444; background: #f8f8f8; padding: 10px; border-radius: 4px; border: 1px solid #eee; max-height: 420px; overflow-y: auto; }
+    .calculation-process-box { font-size: 14px; color: #444; background: #f8f8f8; padding: 10px; border-radius: 4px; border: 1px solid #eee; max-height: 420px; overflow-y: auto; }
     .calc-flow-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-    .calc-flow-row .calc-flow-label { font-weight: 600; min-width: 72px; font-size: 10px; }
+    .calc-flow-row .calc-flow-label { font-weight: 600; min-width: 72px; font-size: 14px; }
     .calc-flow-inputs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-    .calc-flow-chip { font-size: 9px; padding: 2px 6px; background: #e0e0e0; border-radius: 4px; white-space: nowrap; }
-    .calc-flow-arrow { color: #888; font-size: 12px; flex-shrink: 0; }
-    .calc-flow-formula { font-size: 9px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; max-width: 280px; overflow-x: auto; }
-    .calc-flow-result { font-size: 11px; font-weight: 600; padding: 4px 10px; background: #333; color: #fff; border-radius: 4px; min-width: 36px; text-align: center; }
-    .calc-flow-llm-source { font-size: 9px; padding: 4px 8px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; }
+    .calc-flow-chip { font-size: 14px; padding: 2px 6px; background: #e0e0e0; border-radius: 4px; white-space: nowrap; }
+    .calc-flow-arrow { color: #888; font-size: 14px; flex-shrink: 0; }
+    .calc-flow-formula { font-size: 14px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; max-width: 280px; overflow-x: auto; }
+    .calc-flow-result { font-size: 14px; font-weight: 600; padding: 4px 10px; background: #333; color: #fff; border-radius: 4px; min-width: 36px; text-align: center; }
+    .calc-flow-llm-source { font-size: 14px; padding: 4px 8px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; }
     .calc-formula-block { margin-bottom: 12px; }
-    .calc-formula-name { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-    .calc-formula-line { font-size: 10px; font-family: ui-monospace, monospace; color: #333; margin-bottom: 2px; word-break: break-all; }
-    .calc-formula-equals { font-size: 11px; color: #666; margin-bottom: 1px; }
-    .calc-formula-result { font-size: 12px; font-weight: 700; color: #000; }
-    .calc-all-llm-intro { margin: 0 0 8px 0; font-style: italic; color: #666; font-size: 10px; }
-    #route-segments-list { margin-top: 8px; font-size: 11px; }
+    .calc-formula-name { font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
+    .calc-formula-line { font-size: 14px; font-family: 'Poppins', system-ui, sans-serif; color: #333; margin-bottom: 2px; word-break: break-all; }
+    .calc-formula-equals { font-size: 14px; color: #666; margin-bottom: 1px; }
+    .calc-formula-result { font-size: 14px; font-weight: 700; color: #000; }
+    .calc-all-llm-intro { margin: 0 0 8px 0; font-style: italic; color: #666; font-size: 14px; }
+    #route-segments-list { margin-top: 8px; font-size: 14px; }
     #route-segments-list ul { margin: 4px 0 0 0; padding-left: 18px; }
     #route-segments-list li { margin-bottom: 2px; }
     .segment-item { list-style: none; margin-left: -18px; margin-bottom: 10px; }
     .segment-title { font-weight: 600; }
-    .segment-weather { font-size: 10px; color: #555; margin: 2px 0; }
+    .segment-weather { font-size: 14px; color: #555; margin: 2px 0; }
     .segment-context-row { margin-top: 4px; }
-    .segment-indoor-outdoor { font-size: 11px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; }
+    .segment-indoor-outdoor { font-size: 14px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; }
     .address-wrap { position: relative; }
     .address-dropdown {
       display: none;
@@ -209,7 +279,7 @@
     .address-dropdown.is-open { display: block; }
     .address-dropdown-item {
       padding: 8px 10px;
-      font-size: 12px;
+      font-size: 14px;
       cursor: pointer;
       border-bottom: 1px solid #eee;
     }
@@ -217,8 +287,8 @@
     .address-dropdown-item:hover { background: #f0f0f0; }
     #metrics-title {
       font-family: var(--axis-font);
-      font-size: 22px;
-      letter-spacing: 0.12em;
+      font-size: 14px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       margin: 0 0 8px 0;
     }
@@ -231,22 +301,36 @@
       border: 1px solid #ddd;
       padding: 8px 10px;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 14px;
       outline: none;
       background: rgba(255,255,255,0.9);
     }
     #nl-input:focus {
       border-color: #000;
     }
+    #metrics-form, #nl-input {
+      text-align: left;
+    }
     #plan-btn, #analyze-btn {
+      display: inline-block;
       margin-top: 6px;
+      margin-left: auto;
+      margin-right: auto;
       padding: 6px 10px;
-      font-size: 11px;
+      font-size: 14px;
       border-radius: 4px;
       border: 1px solid #000;
       background: #000;
       color: #fff;
       cursor: pointer;
+    }
+    #plan-btn {
+      display: block;
+      margin: 10px auto 0 auto;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
     }
     #plan-btn:hover, #analyze-btn:hover { background: #333; }
     #plan-btn:disabled, #analyze-btn:disabled {
@@ -254,41 +338,36 @@
       cursor: default;
     }
     #metrics-help {
-      font-size: 10px;
+      font-size: 14px;
       color: #777;
-      line-height: 1.4;
+      line-height: 1.5;
     }
     .metric-row {
       margin-top: 8px;
     }
     .metric-label-line {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
       margin-bottom: 4px;
-      font-size: 10px;
+      font-size: 14px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       font-family: var(--axis-font);
     }
     .metric-value {
-      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      font-style: italic;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      opacity: 0.85;
     }
     .metric-bar {
-      position: relative;
-      height: 14px;
-      border-radius: 999px;
-      background: #f0f0f0;
-      overflow: hidden;
+      display: none;
     }
     .metric-fill {
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 0%;
-      background: #000;
-      transition: width 0.4s ease-out;
+      display: none;
     }
     @media (max-width: 960px) {
       #metrics-panel {
@@ -303,111 +382,56 @@
 <body>
   <div id="ui">
     <span id="status" class="disconnected" aria-label="Disconnected"></span>
-    <span id="received">—</span>
-    <button type="button" id="fabricate-btn">Fabricate</button>
+    <span id="received">No contour yet. Send binary from Grasshopper.</span>
   </div>
   <div id="layout">
-    <div id="visual-panel">
-      <canvas id="canvas"></canvas>
-    </div>
     <aside id="metrics-panel">
       <div>
-        <h2 id="metrics-title" style="font-family: var(--axis-font); font-size: 22px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 8px 0;">What are you doing for your day?</h2>
-        <p style="margin:0 0 8px 0; font-size:11px; color:#333;">
+        <h2 id="metrics-title" style="font-family: var(--axis-font); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px 0;">What are you doing for your day?</h2>
+        <p style="margin:0 0 8px 0; font-size:14px; color:#333;">
           Describe where you&apos;re going and what you&apos;re doing.
         </p>
         <form id="metrics-form">
           <textarea id="nl-input" placeholder="e.g. Starting from Central Park, then heading to the office near Times Square, then a café in Brooklyn. Relaxed day, might get chilly later..."></textarea>
-          <button id="plan-btn" type="submit">Plan route &amp; metrics</button>
+          <button id="plan-btn" type="submit" aria-label="Plan route &amp; metrics"></button>
         </form>
-        <p id="plan-status" style="font-size:11px; color:#666; margin-top:6px; min-height:1.2em;"></p>
-        <p id="metrics-help" style="margin-top:8px;">
-          Uses OpenAI in the browser. Copy <code>api-key.example.json</code> to <code>api-key.json</code> and add your key (api-key.json is not committed).
-        </p>
+        <p id="plan-status" style="font-size:14px; color:#666; margin-top:6px; min-height:1.2em;"></p>
+        <p id="metrics-help" style="margin-top:8px;"></p>
       </div>
         <!-- Step 1 – Your input -->
         <section class="pipeline-step" id="step1-section">
-          <h2 class="pipeline-step-title">Step 1 – Your input</h2>
-          <div id="step1-legend" class="step1-legend" style="display:none;">
-            <span class="legend-item"><span class="legend-swatch highlight-start"></span> Start</span>
-            <span class="legend-item"><span class="legend-swatch highlight-destination"></span> Destination</span>
-            <span class="legend-item"><span class="legend-swatch highlight-transit"></span> Transit</span>
-            <span class="legend-item"><span class="legend-swatch highlight-weather"></span> Weather</span>
-            <span class="legend-item"><span class="legend-swatch highlight-activity"></span> Activity</span>
-            <span class="legend-item"><span class="legend-swatch highlight-comfort"></span> Comfort</span>
-            <span class="legend-item"><span class="legend-swatch highlight-duration"></span> Duration</span>
-            <span class="legend-item"><span class="legend-swatch highlight-context"></span> Context</span>
-          </div>
+          <div id="step1-legend" class="step1-legend" style="display:none;"></div>
           <div id="step1-annotated" class="step1-annotated"></div>
-          <p id="step1-empty" class="step-empty">Enter text above and click &quot;Plan route &amp; metrics&quot; to see your input with highlights.</p>
+          <p id="step1-empty" class="step-empty"></p>
         </section>
 
         <!-- Step 2 – Extracted route -->
         <section class="pipeline-step" id="step2-section">
-          <h2 class="pipeline-step-title">Step 2 – Extracted route</h2>
           <div id="map"></div>
+          <div id="streetview-strip" class="streetview-strip" style="display:none;" aria-label="Street-level imagery along the route (Mapillary)"></div>
           <div id="step2-timeline" class="step2-timeline"></div>
-          <p id="step2-empty" class="step-empty">No route yet. Run &quot;Plan route &amp; metrics&quot; to see locations and map.</p>
+          <p id="step2-empty" class="step-empty"></p>
           <div id="step2-segment-details" style="display:none;">
             <strong>Segment details</strong>
             <div class="segment-details-table-wrap">
               <table id="step2-segments-table" class="segment-details-table"></table>
             </div>
           </div>
-          <details class="route-advanced" id="route-advanced">
-            <summary>Advanced: override waypoints</summary>
-            <form class="route-form" id="route-form">
-              <label>Start</label>
-              <div class="address-wrap">
-                <input type="text" id="route-start" placeholder="e.g. Central Park, NYC" autocomplete="off" />
-                <div class="address-dropdown" id="route-start-dropdown"></div>
-              </div>
-              <div id="destinations-container">
-                <label>Destination 1</label>
-                <div class="waypoint-row">
-                  <div class="address-wrap">
-                    <input type="text" data-dest-index="0" placeholder="e.g. Office address" autocomplete="off" />
-                    <div class="address-dropdown"></div>
-                  </div>
-                  <button type="button" class="remove-wp" data-dest-index="0" aria-label="Remove">×</button>
-                </div>
-                <label>Destination 2</label>
-                <div class="waypoint-row">
-                  <div class="address-wrap">
-                    <input type="text" data-dest-index="1" placeholder="e.g. Café" autocomplete="off" />
-                    <div class="address-dropdown"></div>
-                  </div>
-                  <button type="button" class="remove-wp" data-dest-index="1" aria-label="Remove">×</button>
-                </div>
-              </div>
-              <label>Transit mode</label>
-              <select id="route-profile" style="margin-bottom:8px; padding:6px 8px; font-size:12px; border:1px solid #ddd; border-radius:4px;">
-                <option value="walking">Walking</option>
-                <option value="cycling">Biking</option>
-                <option value="driving">Driving</option>
-              </select>
-              <button type="button" id="add-dest-btn">+ Add destination</button>
-              <button type="button" id="calculate-route-btn">Calculate route</button>
-            </form>
-            <p id="route-status"></p>
-            <div id="route-segments-list" style="display:none;">
-              <strong>Segments</strong>
-              <ul id="route-segments-ul"></ul>
-            </div>
-          </details>
+          <div id="route-segments-list" style="display:none;">
+            <strong>Segments</strong>
+            <ul id="route-segments-ul"></ul>
+          </div>
         </section>
 
         <!-- Step 3 – How each metric is calculated -->
         <section class="pipeline-step" id="step3-section">
-          <h2 class="pipeline-step-title">Step 3 – How each metric is calculated</h2>
           <div id="calculation-process" class="calculation-process-box"></div>
-          <p id="step3-empty" class="step-empty">Run &quot;Plan route &amp; metrics&quot; to see formulas and values.</p>
+          <p id="step3-empty" class="step-empty"></p>
         </section>
 
         <!-- Step 4 – Final metrics -->
         <section class="pipeline-step" id="step4-section">
-          <h2 class="pipeline-step-title">Step 4 – Final metrics</h2>
-          <p style="font-size:11px; color:#333; margin:0 0 8px 0;">These values are sent to Grasshopper when connected.</p>
+          <p style="font-size:14px; color:#333; margin:0 0 8px 0;"></p>
       <div id="metrics-sliders" style="margin-top:16px;">
         <div class="metric-row" data-metric="Fit">
           <div class="metric-label-line">
@@ -482,9 +506,13 @@
           </div>
         </div>
       </div>
-      <button type="button" id="send-gh-btn" style="margin-top:12px; padding:6px 10px; font-size:11px; border-radius:4px; border:1px solid #333; background:transparent; cursor:pointer;" title="Re-send last metrics (e.g. after GH reconnects)">Resend to Grasshopper</button>
         </section>
+        <button type="button" id="fabricate-btn">Fabricate</button>
     </aside>
+    <div id="visual-panel">
+      <div id="sim-debug" aria-live="polite">Canvas: — × — | Contours: 0</div>
+      <canvas id="canvas"></canvas>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -579,11 +607,13 @@
       if (map || typeof L === "undefined") return;
       const el = document.getElementById("map");
       if (!el) return;
-      map = L.map("map").setView([40.78, -73.97], 12);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: "© OpenStreetMap © CARTO",
-        subdomains: "abcd",
-        maxZoom: 20
+      // Hide built-in + / - zoom buttons for a more immersive map,
+      // but keep scroll wheel zoom enabled.
+      map = L.map("map", { zoomControl: false }).setView([40.78, -73.97], 12);
+      // Esri World Imagery (satellite) tiles
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        maxZoom: 19
       }).addTo(map);
       routeLayer = L.layerGroup().addTo(map);
     }
@@ -593,9 +623,201 @@
       return L.divIcon({
         className: "minimal-marker-icon",
         html: "<span class=\"minimal-marker-dot\"></span>",
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
+    }
+
+    /** Keep ~1/factor of the route points. */
+    function downsampleRouteLine(points, factor) {
+      if (!points || points.length < 2 || factor <= 1) return points;
+      const out = [];
+      const step = Math.max(1, Math.floor(points.length / Math.max(1, Math.ceil(points.length / factor))));
+      for (let i = 0; i < points.length; i += step) out.push([points[i][0], points[i][1]]);
+      const last = points[points.length - 1];
+      if (out.length && (out[out.length - 1][0] !== last[0] || out[out.length - 1][1] !== last[1])) out.push([last[0], last[1]]);
+      return out.length ? out : points;
+    }
+
+    /**
+     * Smooth route with a simple moving-average style filter.
+     * Does not add extra sample points; just relaxes angles.
+     */
+    function smoothRouteLine(points) {
+      if (!points || points.length < 3) return points;
+      const out = points.map((p) => [p[0], p[1]]);
+      const passes = 4;
+      for (let pass = 0; pass < passes; pass++) {
+        for (let i = 1; i < out.length - 1; i++) {
+          const prev = out[i - 1];
+          const curr = out[i];
+          const next = out[i + 1];
+          out[i][0] = 0.25 * prev[0] + 0.5 * curr[0] + 0.25 * next[0];
+          out[i][1] = 0.25 * prev[1] + 0.5 * curr[1] + 0.25 * next[1];
+        }
+      }
+      return out;
+    }
+
+    /** Jitter route points at 30–60° to the segment (perpendicular-ish, relaxed). */
+    function jitterRouteLine(points) {
+      if (!points || points.length < 3) return points;
+      const magnitude = 0.0002;
+      const out = points.map((p) => [p[0], p[1]]);
+      const toRad = Math.PI / 180;
+      for (let i = 1; i < out.length - 1; i++) {
+        const dlat = points[i + 1][0] - points[i][0];
+        const dlng = points[i + 1][1] - points[i][1];
+        const segAngle = Math.atan2(dlng, dlat);
+        const degOff = 30 + Math.random() * 30;
+        const jitterAngle = segAngle + (Math.random() > 0.5 ? 1 : -1) * degOff * toRad;
+        out[i][0] += magnitude * Math.cos(jitterAngle);
+        out[i][1] += magnitude * Math.sin(jitterAngle);
+      }
+      return out;
+    }
+
+    /** Bearing in degrees 0–360 from (lat1,lon1) to (lat2,lon2). */
+    function bearingDeg(lat1, lon1, lat2, lon2) {
+      const dlon = (lon2 - lon1) * Math.PI / 180;
+      const lat1r = lat1 * Math.PI / 180;
+      const lat2r = lat2 * Math.PI / 180;
+      const x = Math.sin(dlon) * Math.cos(lat2r);
+      const y = Math.cos(lat1r) * Math.sin(lat2r) - Math.sin(lat1r) * Math.cos(lat2r) * Math.cos(dlon);
+      let b = Math.atan2(x, y) * 180 / Math.PI;
+      if (b < 0) b += 360;
+      return b;
+    }
+
+    /** Sample up to maxPoints along the route for imagery (lat, lon, heading). */
+    function sampleStreetViewPoints(routeSegments, maxPoints) {
+      maxPoints = maxPoints || 6;
+      const waypoints = routeSegments?.waypoints || [];
+      const legs = routeSegments?.legs || [];
+      if (!waypoints.length || !legs.length) return [];
+      const out = [];
+      if (waypoints.length >= 2) {
+        const wp0 = waypoints[0];
+        const wp1 = waypoints[1];
+        out.push({
+          lat: wp0.lat,
+          lon: wp0.lon,
+          heading: Math.round(bearingDeg(wp0.lat, wp0.lon, wp1.lat, wp1.lon))
+        });
+      }
+      for (let i = 0; i < legs.length && out.length < maxPoints; i++) {
+        const leg = legs[i];
+        const from = waypoints[leg.fromIndex];
+        const to = waypoints[leg.toIndex];
+        if (!from || !to) continue;
+        const midLat = (from.lat + to.lat) / 2;
+        const midLon = (from.lon + to.lon) / 2;
+        out.push({
+          lat: midLat,
+          lon: midLon,
+          heading: Math.round(bearingDeg(from.lat, from.lon, to.lat, to.lon))
+        });
+      }
+      return out.slice(0, maxPoints);
+    }
+
+    /** One point per waypoint (lat, lon, heading) for location imagery. */
+    function getLocationImageryPoints(routeSegments) {
+      const waypoints = routeSegments?.waypoints || [];
+      const legs = routeSegments?.legs || [];
+      if (!waypoints.length) return [];
+      const out = [];
+      for (let i = 0; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        let heading = 0;
+        if (waypoints.length > 1) {
+          if (i < waypoints.length - 1) heading = Math.round(bearingDeg(wp.lat, wp.lon, waypoints[i + 1].lat, waypoints[i + 1].lon));
+          else heading = Math.round(bearingDeg(waypoints[i - 1].lat, waypoints[i - 1].lon, wp.lat, wp.lon));
+        }
+        out.push({ lat: wp.lat, lon: wp.lon, heading });
+      }
+      return out;
+    }
+
+    /** Three points per leg (lat, lon, heading) along leg geometry or from→to line. */
+    function getLegImageryPoints(routeSegments) {
+      const waypoints = routeSegments?.waypoints || [];
+      const legs = routeSegments?.legs || [];
+      if (!legs.length) return [];
+      const out = [];
+      for (let i = 0; i < legs.length; i++) {
+        const leg = legs[i];
+        const from = waypoints[leg.fromIndex];
+        const to = waypoints[leg.toIndex];
+        if (!from || !to) {
+          out.push([]);
+          continue;
+        }
+        const heading = Math.round(bearingDeg(from.lat, from.lon, to.lat, to.lon));
+        const pts = [];
+        const geom = leg.geometry && leg.geometry.length >= 2 ? leg.geometry : [[from.lon, from.lat], [to.lon, to.lat]];
+        for (let k = 0; k < 3; k++) {
+          const t = (k + 1) / 4;
+          const idx = Math.min(Math.floor(t * (geom.length - 1)), geom.length - 2);
+          const frac = geom.length > 1 ? (t * (geom.length - 1)) - idx : 0;
+          const c0 = geom[idx];
+          const c1 = geom[idx + 1];
+          const lon = c0[0] + frac * (c1[0] - c0[0]);
+          const lat = c0[1] + frac * (c1[1] - c0[1]);
+          pts.push({ lat, lon, heading });
+        }
+        out.push(pts);
+      }
+      return out;
+    }
+
+    /** Build Google Street View Static API URL for a point. Returns URL or null. */
+    async function fetchGoogleStreetViewImageForPoint(lat, lon, heading, apiKey) {
+      const key = (apiKey || "").trim();
+      if (!key) return null;
+      const safeHeading = Number.isFinite(heading) ? Math.round(heading) : 0;
+      const size = "400x400";
+      return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lon}&fov=90&heading=${safeHeading}&pitch=0&source=outdoor&key=${key}`;
+    }
+
+    /** Populate or clear the street-level imagery grid (3x3) from the whole route using Google Street View. */
+    async function updateStreetViewStrip(routeSegments) {
+      const stripEl = document.getElementById("streetview-strip");
+      if (!stripEl) return;
+      const apiKey = typeof window.GOOGLE_MAPS_API_KEY !== "undefined" ? window.GOOGLE_MAPS_API_KEY : "";
+      const full = routeSegments?.fullGeometry || [];
+      stripEl.innerHTML = "";
+      if (!apiKey || !full.length || full.length < 2) {
+        stripEl.style.display = "none";
+        return;
+      }
+      stripEl.style.display = "grid";
+      const urls = [];
+      const n = full.length;
+      const samples = 9;
+      for (let i = 0; i < samples; i++) {
+        const t = (i + 0.5) / samples;
+        const pos = t * (n - 1);
+        const idx = Math.min(Math.floor(pos), n - 2);
+        const frac = pos - idx;
+        const c0 = full[idx];
+        const c1 = full[idx + 1];
+        const lon0 = c0[0], lat0 = c0[1];
+        const lon1 = c1[0], lat1 = c1[1];
+        const lon = lon0 + frac * (lon1 - lon0);
+        const lat = lat0 + frac * (lat1 - lat0);
+        const heading = bearingDeg(lat0, lon0, lat1, lon1);
+        // eslint-disable-next-line no-await-in-loop
+        const url = await fetchGoogleStreetViewImageForPoint(lat, lon, heading, apiKey);
+        if (url) urls.push(url);
+      }
+      if (!urls.length) {
+        stripEl.style.display = "none";
+        return;
+      }
+      const parts = urls.map((u) => `<img class="streetview-grid-img" src="${escapeHtml(u)}" alt="Street-level imagery along route">`);
+      parts.push('<div class="streetview-attribution">© Google Street View</div>');
+      stripEl.innerHTML = parts.join("");
     }
 
     async function geocode(q) {
@@ -956,9 +1178,11 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       initMap();
       if (routeLayer) routeLayer.clearLayers();
       const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
-      L.polyline(latLngs, { color: "#000", weight: 4 }).addTo(routeLayer);
+      const drawnLine = jitterRouteLine(smoothRouteLine(downsampleRouteLine(latLngs, 2)));
+      L.polyline(drawnLine, { color: "#fff", weight: 2 }).addTo(routeLayer);
       waypoints.forEach((wp, i) => {
-        L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() }).bindTooltip(i === 0 ? "Start" : `Dest ${i}`, { permanent: false }).addTo(routeLayer);
+        const label = wp.name || (i === 0 ? "Start" : `Destination ${i}`);
+        L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() }).bindTooltip(label, { permanent: false }).addTo(routeLayer);
       });
       if (map && latLngs.length) map.fitBounds(latLngs, { padding: [20, 20] });
       updateSegmentsList(waypoints, legs);
@@ -1041,7 +1265,7 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       updateStep2Timeline();
     }
 
-    function updateStep2Timeline() {
+    async function updateStep2Timeline() {
       const timelineEl = document.getElementById("step2-timeline");
       const emptyEl = document.getElementById("step2-empty");
       if (!timelineEl) return;
@@ -1054,8 +1278,12 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
         if (emptyEl) emptyEl.style.display = "block";
         const wrap = document.getElementById("step2-segment-details");
         if (wrap) wrap.style.display = "none";
+        updateStreetViewStrip({ waypoints: [], legs: [] });
         return;
       }
+      timelineEl.innerHTML = "";
+      timelineEl.style.display = "block";
+      if (emptyEl) emptyEl.style.display = "none";
       const totalTravelMin = legs.reduce((sum, leg) => sum + (leg.duration_sec || 0) / 60, 0);
       const totalStayMin = waypoints.reduce((sum, wp) => sum + (wp.stay_min != null ? wp.stay_min : (wp === waypoints[0] ? 0 : 30)), 0);
       const totalMin = totalTravelMin + totalStayMin;
@@ -1102,9 +1330,10 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       }
       timelineEl.innerHTML = parts.join("");
       timelineEl.style.display = "block";
-      if (emptyEl) emptyEl.style.display = "none";
       const wrap = document.getElementById("step2-segment-details");
       if (wrap) wrap.style.display = "none";
+      updateStreetViewStrip(segs);
+      updateSegmentsList(waypoints, legs);
     }
 
     function updateStep2SegmentTable() {
@@ -1211,10 +1440,12 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       initMap();
       if (routeLayer) routeLayer.clearLayers();
       const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
-      L.polyline(latLngs, { color: "#000", weight: 4 }).addTo(routeLayer);
+      const drawnLine = jitterRouteLine(smoothRouteLine(downsampleRouteLine(latLngs, 2)));
+      L.polyline(drawnLine, { color: "#fff", weight: 2 }).addTo(routeLayer);
       waypoints.forEach((wp, i) => {
+        const label = wp.name || (i === 0 ? "Start" : `Destination ${i}`);
         L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() })
-          .bindTooltip(i === 0 ? "Start" : `Dest ${i}`, { permanent: false })
+          .bindTooltip(label, { permanent: false })
           .addTo(routeLayer);
       });
       if (map && latLngs.length) map.fitBounds(latLngs, { padding: [20, 20] });
@@ -1520,11 +1751,104 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
         .then((r) => { if (!r.ok) throw new Error("not found"); return r.json(); })
         .then((o) => {
           OPENAI_API_KEY = (o.OPENAI_API_KEY || "").trim();
+          if (typeof window !== "undefined") {
+            window.GOOGLE_MAPS_API_KEY = (o.GOOGLE_MAPS_API_KEY || "").trim();
+            window.MAPILLARY_ACCESS_TOKEN = (o.MAPILLARY_ACCESS_TOKEN || "").trim();
+          }
           apiKeyLoaded = true;
           return OPENAI_API_KEY;
         })
         .catch(() => { apiKeyLoaded = true; return ""; });
       return apiKeyPromise;
+    }
+
+    function describeMetricNote(key, v) {
+      const clamp = Math.max(0, Math.min(1, v));
+      const bucket = clamp <= 0.2 ? 0 : clamp <= 0.4 ? 1 : clamp <= 0.6 ? 2 : clamp <= 0.8 ? 3 : 4;
+      switch (key) {
+        case "Fit": {
+          const notes = [
+            "fit: very close, almost second-skin",
+            "fit: close and tailored",
+            "fit: balanced ease through the body",
+            "fit: relaxed with visible ease",
+            "fit: very loose, drifting away from the body"
+          ];
+          return notes[bucket];
+        }
+        case "Mesh": {
+          const notes = [
+            "mesh: big open structure, lots of air",
+            "mesh: open weave with visible gaps",
+            "mesh: mid-density grid",
+            "mesh: fine mesh, nearly solid",
+            "mesh: very fine, reads almost as solid cloth"
+          ];
+          return notes[bucket];
+        }
+        case "Thickness": {
+          const notes = [
+            "thickness: ultra-thin, papery layer",
+            "thickness: light, summer-weight cloth",
+            "thickness: mid-weight, everyday fabric",
+            "thickness: substantial, structured layer",
+            "thickness: heavy, almost coat-like"
+          ];
+          return notes[bucket];
+        }
+        case "Airflow": {
+          const notes = [
+            "airflow: very breathable, air moves freely",
+            "airflow: breathable with gentle resistance",
+            "airflow: balanced, neither drafty nor sealed",
+            "airflow: insulating, holds warmth in",
+            "airflow: sealed, almost no air movement"
+          ];
+          return notes[bucket];
+        }
+        case "Support": {
+          const notes = [
+            "support: soft and drapey, follows the body",
+            "support: gentle structure, still fluid",
+            "support: balanced between drape and structure",
+            "support: firm, holds shape off the body",
+            "support: rigid, architectural silhouette"
+          ];
+          return notes[bucket];
+        }
+        case "Comfort": {
+          const notes = [
+            "comfort / aesthetic: utilitarian, almost technical",
+            "comfort / aesthetic: functional with small touches",
+            "comfort / aesthetic: balanced utility and pleasure",
+            "comfort / aesthetic: soft, comforting presence",
+            "comfort / aesthetic: indulgent, almost ceremonial"
+          ];
+          return notes[bucket];
+        }
+        case "DressLength": {
+          const notes = [
+            "length: very short, above mid-thigh",
+            "length: short, mid-thigh to above knee",
+            "length: mid-length, around the knee",
+            "length: long, mid-calf range",
+            "length: very long, almost to the floor"
+          ];
+          return notes[bucket];
+        }
+        case "DressSize": {
+          const notes = [
+            "hem: very narrow, almost column-like",
+            "hem: narrow with slight flare",
+            "hem: moderate sweep around the legs",
+            "hem: wide, generous sweep",
+            "hem: very wide, dramatic halo around the feet"
+          ];
+          return notes[bucket];
+        }
+        default:
+          return `value: ${clamp.toFixed(2)}`;
+      }
     }
 
     function setMetricsDisplay(values) {
@@ -1533,8 +1857,7 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
         const v = Math.max(0, Math.min(1, vRaw));
         const els = metricEls[key];
         if (!els) return;
-        els.val.textContent = v.toFixed(2);
-        els.bar.style.width = (v * 100).toFixed(1) + "%";
+        els.val.textContent = describeMetricNote(key, v);
       });
     }
 
@@ -1775,7 +2098,7 @@ Output only the JSON, no explanation.`;
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "metrics", ...result }));
           }
-          planStatus.textContent = "Done. Metrics sent to Grasshopper if connected.";
+          planStatus.textContent = "";
         } else {
           planStatus.textContent = "Metrics computation failed.";
         }
@@ -1787,14 +2110,16 @@ Output only the JSON, no explanation.`;
       }
     });
 
-    sendGhBtn.addEventListener("click", () => {
-      if (!lastMetrics) return;
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "metrics", ...lastMetrics }));
-      } else {
-        alert("Not connected to Grasshopper. Start the WebSocket server (node server.js) and connect GH to ws://127.0.0.1:9000");
-      }
-    });
+    if (sendGhBtn) {
+      sendGhBtn.addEventListener("click", () => {
+        if (!lastMetrics) return;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "metrics", ...lastMetrics }));
+        } else {
+          alert("Not connected to Grasshopper. Start the WebSocket server (node server.js) and connect GH to ws://127.0.0.1:9000");
+        }
+      });
+    }
 
     // ——— Scene
     const scene = new THREE.Scene();
@@ -1849,8 +2174,18 @@ Output only the JSON, no explanation.`;
       renderer.setSize(s.width, s.height);
       composer.setSize(s.width, s.height);
       composer.setPixelRatio(renderer.getPixelRatio());
+      updateSimDebug();
     }
     window.addEventListener("resize", onResize);
+
+    function updateSimDebug() {
+      const el = document.getElementById("sim-debug");
+      if (!el) return;
+      const w = canvas.width || canvas.clientWidth || 0;
+      const h = canvas.height || canvas.clientHeight || 0;
+      const n = lineGroup ? lineGroup.children.length : 0;
+      el.textContent = `Canvas: ${w}×${h} | Contours: ${n}`;
+    }
 
     function addLineFromFloats(floats) {
       const pointCount = floats.length / 3;
@@ -2062,26 +2397,57 @@ Output only the JSON, no explanation.`;
       ws.onerror = () => {};
 
       ws.onmessage = async (event) => {
-        if (typeof event.data === "string") return;
-        let buffer;
-        if (event.data instanceof ArrayBuffer) {
-          buffer = event.data;
-        } else if (event.data instanceof Blob) {
-          buffer = await event.data.arrayBuffer();
+        let floats;
+        if (typeof event.data === "string") {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed && parsed.type === "metrics") return;
+            let arr = null;
+            if (Array.isArray(parsed.points)) arr = parsed.points;
+            else if (Array.isArray(parsed)) arr = parsed;
+            if (!arr || arr.length === 0) return;
+            const flat = [];
+            for (let i = 0; i < arr.length; i++) {
+            const pt = arr[i];
+            if (Array.isArray(pt)) {
+              flat.push(Number(pt[0]), Number(pt[1]), Number(pt[2]));
+            } else if (pt != null && typeof pt === "object") {
+              const x = pt.x ?? pt.X ?? 0;
+              const y = pt.y ?? pt.Y ?? 0;
+              const z = pt.z ?? pt.Z ?? 0;
+              flat.push(Number(x), Number(y), Number(z));
+            }
+            }
+            if (flat.length % 3 !== 0) return;
+            floats = new Float32Array(flat);
+            console.log("Contour from JSON, points:", floats.length / 3);
+          } catch (_) {
+            return;
+          }
         } else {
-          console.log("Unexpected message type:", typeof event.data, event.data);
-          return;
+          let buffer;
+          if (event.data instanceof ArrayBuffer) {
+            buffer = event.data;
+          } else if (event.data instanceof Blob) {
+            buffer = await event.data.arrayBuffer();
+          } else {
+            console.log("Unexpected message type:", typeof event.data, event.data);
+            return;
+          }
+
+          floats = new Float32Array(buffer);
         }
 
-        const floats = new Float32Array(buffer);
         if (floats.length % 3 !== 0) {
           console.warn("Float count is not multiple of 3. Packing mismatch.");
           return;
         }
 
         const pointCount = floats.length / 3;
-        console.log("Binary message, byteLength:", buffer.byteLength, "points:", pointCount);
-        console.log("First point:", floats[0], floats[1], floats[2]);
+        if (typeof event.data !== "string") {
+          console.log("Binary message, byteLength:", event.data.byteLength || event.data.size, "points:", pointCount);
+          console.log("First point:", floats[0], floats[1], floats[2]);
+        }
 
         while (lineGroup.children.length) {
           const line = lineGroup.children[0];
@@ -2095,10 +2461,12 @@ Output only the JSON, no explanation.`;
         const totalLines = lineGroup.children.length;
         document.getElementById("received").textContent =
           `${pointCount} points (this contour) · ${totalLines} contour(s) total`;
+        updateSimDebug();
       };
     }
 
     connect();
+    setTimeout(updateSimDebug, 200);
   </script>
 </body>
 </html>

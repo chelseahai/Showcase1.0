@@ -35,6 +35,21 @@ Binary messages (e.g. Float32 point data) are unchanged; the server broadcasts e
 
 You still need a way to get `message` from the WebSocket in GH (e.g. **Lunchbox** “WebSocket”, **Elefront**, or a custom C#/Python client that writes into the C# input).
 
+### "Unable to connect to the remote server"
+
+- **URL:** Use exactly `ws://127.0.0.1:9000` (or `ws://localhost:9000`). Use `ws://`, not `wss://` or `http://`; port is `9000`.
+- **Start the server first:** In a terminal run `node server.js` from the `gh-websocket` folder. You should see `WS server on 9000`. Keep that terminal open.
+- **Grasshopper = client:** The component must connect *to* the server (client mode), not start a server. Enter the URL in the component's address field.
+- **Firewall:** Allow Node.js or your terminal on port 9000 if Windows asks.
+
+### "The remote party closed the WebSocket connection without completing the close handshake"
+
+This usually means the **server** closed the connection abruptly (e.g. the `node server.js` process stopped or crashed). The server has been updated so one failing client or send error no longer takes it down.
+
+- **Restart the server:** In the `gh-websocket` folder run `node server.js` again and leave that terminal open.
+- **Reconnect in Grasshopper:** After the server is running, connect again to `ws://127.0.0.1:9000`.
+- If it happens often, check the server terminal for errors when it occurs; that will show what triggered the disconnect.
+
 ### Plugins that can help
 
 - **Lunchbox for Grasshopper** – has a WebSocket component.  
@@ -42,3 +57,19 @@ You still need a way to get `message` from the WebSocket in GH (e.g. **Lunchbox*
 - A **C# Script** or **Python** component that uses a WebSocket library and updates outputs when a message arrives.
 
 Once the client is connected to `ws://127.0.0.1:9000`, run the page, click **Analyze text** (or **Resend to Grasshopper**), and the 8 values will be broadcast as JSON to all connected clients, including Grasshopper.
+
+## Sending contour geometry back to the webpage
+
+The right-panel simulation updates when the page receives contour data. It accepts **binary** or **JSON** (see Format A and B below).
+
+### Format A: Binary
+
+- **Message type:** Binary (`ArrayBuffer`).
+- **Content:** One contour = 3D points as **32-bit floats** in order: `x0, y0, z0, x1, y1, z1, …`  
+  So `byteLength = pointCount × 12`.
+
+### Format B: JSON (text)
+
+- Send a **text** message with points, e.g. `{ "points": [ [x,y,z], … ] }` or `[ [x,y,z], … ]` or `[ { "x", "y", "z" }, … ]` (Rhino `X,Y,Z` keys also work). Messages with `"type": "metrics"` are ignored for drawing.
+
+**Coordinates:** Your usual Rhino/GH system; the page applies `rotation.x = -π/2`. Flatten contour to `[x0,y0,z0, ...]`, send as binary **Float32Array** or as JSON. The page clears the current curve, builds a Catmull-Rom curve, and frames the camera. No simulation is shown until a contour message (binary or JSON) is received.
