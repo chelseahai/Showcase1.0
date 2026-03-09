@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Covered+By+Your+Grace&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     * { box-sizing: border-box; }
@@ -18,6 +19,7 @@
     }
     body {
       margin: 0;
+      padding-left: 15px;
       font-family: 'Poppins', system-ui, sans-serif;
       font-weight: 200;
       overflow-x: hidden;
@@ -47,7 +49,7 @@
     }
     #status {
       width: 8px; height: 8px;
-      border-radius: 50%;
+      border-radius: 0;
       border: 1px solid #000;
       flex-shrink: 0;
     }
@@ -64,7 +66,7 @@
       color: #666;
       background: rgba(255,255,255,0.9);
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: 0;
       pointer-events: none;
     }
     #fabricate-btn {
@@ -74,24 +76,27 @@
       color: #000;
       background: transparent;
       border: 1px solid rgba(0,0,0,0.6);
-      border-radius: 4px;
+      border-radius: 0;
       cursor: pointer;
     }
     #fabricate-btn:hover { border-color: #000; background: rgba(0,0,0,0.08); }
     #layout {
       position: relative;
-      width: 100vw;
+      width: 100%;
       min-height: 100vh;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
       align-items: stretch;
     }
     #visual-panel {
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      width: 100%;
+      min-height: 360px;
+      height: 400px;
+      position: relative;
       overflow: hidden;
       background: #fff;
+      margin-top: 16px;
+      margin-bottom: 16px;
     }
     #canvas {
       position: absolute;
@@ -103,6 +108,8 @@
     }
     #metrics-panel {
       position: relative;
+      width: 100%;
+      max-width: 100%;
       padding: 88px 24px 24px;
       background: rgba(255,255,255,0.98);
       display: flex;
@@ -115,6 +122,59 @@
     }
     #metrics-panel > * {
       width: 100%;
+    }
+    .content-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      margin-top: 20px;
+      align-items: stretch;
+    }
+    .content-visuals {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 100%;
+      align-items: center;
+      max-width: 100%;
+      justify-content: flex-start;
+      overflow: visible;
+    }
+    .content-visuals .visual-card {
+      transform: rotate(var(--tilt, 0deg));
+      width: 100%;
+      margin-bottom: -6px;
+    }
+    .content-visuals .visual-card:last-child { margin-bottom: 0; }
+    .content-visuals .visual-card:nth-child(1) { --tilt: -0.6deg; max-width: 360px; }
+    .content-visuals .visual-card:nth-child(2) { --tilt: 0.5deg; max-width: 550px; }
+    #map-card { display: none; }
+    .content-visuals .visual-card:nth-child(3) { --tilt: -0.4deg; max-width: 300px; }
+    .content-visuals .visual-card:nth-child(4) { --tilt: 0.5deg; max-width: 320px; }
+    .content-visuals .visual-card img.streetview-grid-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 0;
+      filter: grayscale(1);
+      background: #eee;
+      display: block;
+    }
+    .content-text {
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.75;
+    }
+    .content-text .step1-annotated { text-align: center; }
+    .content-text .step1-legend { justify-content: center; }
+    .content-text .pipeline-step { margin-top: 0; max-width: 380px; }
+    @media (max-width: 768px) {
+      .content-two-col { grid-template-columns: 1fr; }
     }
     #map {
       width: 100%;
@@ -131,10 +191,14 @@
       display: block;
       width: 20px;
       height: 20px;
-      border-radius: 50%;
+      border-radius: 0;
       background: #fff;
       border: none;
       box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+    }
+    #map .minimal-marker-dot {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
     }
     .route-form label { display: block; font-size: 14px; margin-bottom: 2px; color: #333; }
     .route-form input {
@@ -142,18 +206,18 @@
       padding: 6px 8px;
       font-size: 14px;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 0;
       margin-bottom: 8px;
     }
     .route-form input:focus { outline: none; border-color: #000; }
     .waypoint-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
     .waypoint-row .address-wrap { flex: 1; position: relative; }
     .waypoint-row input { flex: 1; margin-bottom: 0; }
-    .waypoint-row .remove-wp { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
+    .waypoint-row .remove-wp { padding: 4px 8px; font-size: 14px; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 0; }
     .waypoint-row .remove-wp:hover { background: #eee; }
-    #add-dest-btn { padding: 4px 8px; font-size: 14px; margin-bottom: 8px; border: 1px solid #999; background: transparent; border-radius: 4px; cursor: pointer; }
+    #add-dest-btn { padding: 4px 8px; font-size: 14px; margin-bottom: 8px; border: 1px solid #999; background: transparent; border-radius: 0; cursor: pointer; }
     #add-dest-btn:hover { background: rgba(0,0,0,0.06); }
-    #calculate-route-btn { padding: 6px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
+    #calculate-route-btn { padding: 6px 12px; font-size: 14px; border-radius: 0; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
     #calculate-route-btn:hover { background: #333; }
     #calculate-route-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #route-status { font-size: 14px; color: #666; margin-top: 6px; min-height: 1.2em; }
@@ -161,10 +225,11 @@
     .pipeline-step-title { font-family: var(--axis-font); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px 0; }
     .step-empty { font-size: 14px; color: #888; margin: 6px 0 0 0; font-style: italic; }
     .step1-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; font-size: 14px; color: #555; }
-    .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 0; margin-right: 4px; vertical-align: middle; }
     .step1-annotated {
-      font-size: 14px;
-      line-height: 1.5;
+      font-family: 'Covered By Your Grace', cursive;
+      font-size: 12px;
+      line-height: 1.85;
       padding: 0;
       background: transparent;
       border-radius: 0;
@@ -175,23 +240,33 @@
     }
     .step1-annotated .highlight-wrap { display: inline-block; vertical-align: top; }
     .step1-annotated .highlight-wrap > span:first-child { display: inline-block; }
-    .step1-annotated .highlight-start { background: rgba(200, 242, 217, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-destination { background: rgba(228, 219, 255, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-transit { background: rgba(210, 240, 255, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-weather { background: rgba(214, 229, 255, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-activity { background: rgba(215, 251, 244, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-comfort { background: rgba(255, 228, 239, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-duration { background: rgba(226, 232, 255, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-context { background: rgba(222, 245, 255, 0.95); padding: 0 2px; border-radius: 0; }
-    .step1-annotated .highlight-label { display: block; font-size: 14px; margin-top: 1px; padding: 0 2px; border-radius: 0; text-align: center; }
-    .step1-annotated .highlight-label-start { background: rgba(200, 242, 217, 0.95); color: #2f6f4e; }
-    .step1-annotated .highlight-label-destination { background: rgba(228, 219, 255, 0.95); color: #5a53a3; }
-    .step1-annotated .highlight-label-transit { background: rgba(210, 240, 255, 0.95); color: #0f6a78; }
-    .step1-annotated .highlight-label-weather { background: rgba(214, 229, 255, 0.95); color: #425b9a; }
-    .step1-annotated .highlight-label-activity { background: rgba(215, 251, 244, 0.95); color: #247c6c; }
-    .step1-annotated .highlight-label-comfort { background: rgba(255, 228, 239, 0.95); color: #b2577f; }
-    .step1-annotated .highlight-label-duration { background: rgba(226, 232, 255, 0.95); color: #4d5b99; }
-    .step1-annotated .highlight-label-context { background: rgba(222, 245, 255, 0.95); color: #3a6f80; }
+    .step1-annotated .highlight-start { background: rgba(200, 242, 217, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-destination { background: rgba(228, 219, 255, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-transit { background: rgba(210, 240, 255, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-weather { background: rgba(214, 229, 255, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-activity { background: rgba(215, 251, 244, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-comfort { background: rgba(255, 228, 239, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-duration { background: rgba(226, 232, 255, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-context { background: rgba(222, 245, 255, 0.5); padding: 0 2px; border-radius: 0; }
+    .step1-annotated .highlight-label {
+      display: block;
+      font-family: var(--axis-font);
+      font-size: 12px;
+      font-weight: 200;
+      margin-top: 2px;
+      padding: 0 2px;
+      border-radius: 0;
+      text-align: center;
+    }
+    .step1-annotated .highlight-label-start { background: rgba(200, 242, 217, 0.5); color: #2f6f4e; }
+    .step1-annotated .highlight-label-destination { background: rgba(228, 219, 255, 0.5); color: #5a53a3; }
+    .step1-annotated .highlight-label-transit { background: rgba(210, 240, 255, 0.5); color: #0f6a78; }
+    .step1-annotated .highlight-label-weather { background: rgba(214, 229, 255, 0.5); color: #425b9a; }
+    .step1-annotated .highlight-label-activity { background: rgba(215, 251, 244, 0.5); color: #247c6c; }
+    .step1-annotated .highlight-label-comfort { background: rgba(255, 228, 239, 0.5); color: #b2577f; }
+    .step1-annotated .highlight-label-duration { background: rgba(226, 232, 255, 0.5); color: #4d5b99; }
+    .step1-annotated .highlight-label-context { background: rgba(222, 245, 255, 0.5); color: #3a6f80; }
+    .step1-annotated .sketchbook-line { display: block; margin-bottom: 4px; transform-origin: 0 50%; }
     .step2-locations { font-size: 14px; margin-bottom: 8px; color: #333; }
     .step2-locations .loc-line { margin: 2px 0; }
     .segment-details-table-wrap { overflow-x: auto; margin-top: 6px; }
@@ -223,7 +298,7 @@
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
-      border-radius: 4px;
+      border-radius: 0;
       filter: grayscale(1);
       background: #eee;
       display: block;
@@ -237,15 +312,15 @@
     }
     .route-advanced { margin-top: 12px; font-size: 14px; }
     .route-advanced summary { cursor: pointer; color: #666; }
-    .calculation-process-box { font-size: 14px; color: #444; background: #f8f8f8; padding: 10px; border-radius: 4px; border: 1px solid #eee; max-height: 420px; overflow-y: auto; }
+    .calculation-process-box { font-size: 14px; color: #444; background: #f8f8f8; padding: 10px; border-radius: 0; border: 1px solid #eee; max-height: 420px; overflow-y: auto; }
     .calc-flow-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
     .calc-flow-row .calc-flow-label { font-weight: 600; min-width: 72px; font-size: 14px; }
     .calc-flow-inputs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-    .calc-flow-chip { font-size: 14px; padding: 2px 6px; background: #e0e0e0; border-radius: 4px; white-space: nowrap; }
+    .calc-flow-chip { font-size: 14px; padding: 2px 6px; background: #e0e0e0; border-radius: 0; white-space: nowrap; }
     .calc-flow-arrow { color: #888; font-size: 14px; flex-shrink: 0; }
-    .calc-flow-formula { font-size: 14px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; max-width: 280px; overflow-x: auto; }
-    .calc-flow-result { font-size: 14px; font-weight: 600; padding: 4px 10px; background: #333; color: #fff; border-radius: 4px; min-width: 36px; text-align: center; }
-    .calc-flow-llm-source { font-size: 14px; padding: 4px 8px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; }
+    .calc-flow-formula { font-size: 14px; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 0; max-width: 280px; overflow-x: auto; }
+    .calc-flow-result { font-size: 14px; font-weight: 600; padding: 4px 10px; background: #333; color: #fff; border-radius: 0; min-width: 36px; text-align: center; }
+    .calc-flow-llm-source { font-size: 14px; padding: 4px 8px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 0; }
     .calc-formula-block { margin-bottom: 12px; }
     .calc-formula-name { font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
     .calc-formula-line { font-size: 14px; font-family: 'Poppins', system-ui, sans-serif; color: #333; margin-bottom: 2px; word-break: break-all; }
@@ -259,7 +334,7 @@
     .segment-title { font-weight: 600; }
     .segment-weather { font-size: 14px; color: #555; margin: 2px 0; }
     .segment-context-row { margin-top: 4px; }
-    .segment-indoor-outdoor { font-size: 14px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; }
+    .segment-indoor-outdoor { font-size: 14px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 0; }
     .address-wrap { position: relative; }
     .address-dropdown {
       display: none;
@@ -271,7 +346,7 @@
       background: #fff;
       border: 1px solid #ddd;
       border-top: none;
-      border-radius: 0 0 4px 4px;
+      border-radius: 0 0 0 0;
       max-height: 180px;
       overflow-y: auto;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -297,7 +372,7 @@
       min-height: 80px;
       max-height: 140px;
       resize: vertical;
-      border-radius: 4px;
+      border-radius: 0;
       border: 1px solid #ddd;
       padding: 8px 10px;
       font-family: inherit;
@@ -318,7 +393,7 @@
       margin-right: auto;
       padding: 6px 10px;
       font-size: 14px;
-      border-radius: 4px;
+      border-radius: 0;
       border: 1px solid #000;
       background: #000;
       color: #fff;
@@ -330,7 +405,7 @@
       width: 44px;
       height: 44px;
       padding: 0;
-      border-radius: 50%;
+      border-radius: 0;
     }
     #plan-btn:hover, #analyze-btn:hover { background: #333; }
     #plan-btn:disabled, #analyze-btn:disabled {
@@ -369,14 +444,6 @@
     .metric-fill {
       display: none;
     }
-    @media (max-width: 960px) {
-      #metrics-panel {
-        width: 100%;
-        height: 260px;
-        top: auto;
-        padding-top: 16px;
-      }
-    }
   </style>
 </head>
 <body>
@@ -398,17 +465,26 @@
         <p id="plan-status" style="font-size:14px; color:#666; margin-top:6px; min-height:1.2em;"></p>
         <p id="metrics-help" style="margin-top:8px;"></p>
       </div>
-        <!-- Step 1 – Your input -->
-        <section class="pipeline-step" id="step1-section">
-          <div id="step1-legend" class="step1-legend" style="display:none;"></div>
-          <div id="step1-annotated" class="step1-annotated"></div>
-          <p id="step1-empty" class="step-empty"></p>
-        </section>
+        <div class="content-two-col">
+          <div class="content-visuals">
+            <div id="streetview-above" class="visual-card streetview-strip" style="display:none;" aria-label="Street-level imagery along the route"></div>
+            <div id="map-card" class="visual-card" style="display:none;">
+              <div id="map"></div>
+            </div>
+            <div id="streetview-mid" class="visual-card streetview-strip" style="display:none;" aria-label="Street-level imagery along the route"></div>
+            <div id="streetview-bottom" class="visual-card streetview-strip" style="display:none;" aria-label="Street-level imagery along the route"></div>
+          </div>
+          <div class="content-text">
+            <section class="pipeline-step" id="step1-section">
+              <div id="step1-legend" class="step1-legend" style="display:none;"></div>
+              <div id="step1-annotated" class="step1-annotated"></div>
+              <p id="step1-empty" class="step-empty"></p>
+            </section>
+          </div>
+        </div>
 
         <!-- Step 2 – Extracted route -->
         <section class="pipeline-step" id="step2-section">
-          <div id="map"></div>
-          <div id="streetview-strip" class="streetview-strip" style="display:none;" aria-label="Street-level imagery along the route (Mapillary)"></div>
           <div id="step2-timeline" class="step2-timeline"></div>
           <p id="step2-empty" class="step-empty"></p>
           <div id="step2-segment-details" style="display:none;">
@@ -507,12 +583,12 @@
         </div>
       </div>
         </section>
+        <div id="visual-panel">
+          <div id="sim-debug" aria-live="polite">Canvas: — × — | Contours: 0</div>
+          <canvas id="canvas"></canvas>
+        </div>
         <button type="button" id="fabricate-btn">Fabricate</button>
     </aside>
-    <div id="visual-panel">
-      <div id="sim-debug" aria-live="polite">Canvas: — × — | Contours: 0</div>
-      <canvas id="canvas"></canvas>
-    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -780,21 +856,26 @@
       return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lon}&fov=90&heading=${safeHeading}&pitch=0&source=outdoor&key=${key}`;
     }
 
-    /** Populate or clear the street-level imagery grid (3x3) from the whole route using Google Street View. */
+    /** Populate street-level imagery: 1 image above map, 2 below (3 total, 4 cards). */
     async function updateStreetViewStrip(routeSegments) {
-      const stripEl = document.getElementById("streetview-strip");
-      if (!stripEl) return;
+      const aboveEl = document.getElementById("streetview-above");
+      const midEl = document.getElementById("streetview-mid");
+      const bottomEl = document.getElementById("streetview-bottom");
+      const mapCard = document.getElementById("map-card");
+      if (!aboveEl || !midEl || !bottomEl) return;
       const apiKey = typeof window.GOOGLE_MAPS_API_KEY !== "undefined" ? window.GOOGLE_MAPS_API_KEY : "";
       const full = routeSegments?.fullGeometry || [];
-      stripEl.innerHTML = "";
-      if (!apiKey || !full.length || full.length < 2) {
-        stripEl.style.display = "none";
-        return;
-      }
-      stripEl.style.display = "grid";
-      const urls = [];
+      aboveEl.innerHTML = "";
+      midEl.innerHTML = "";
+      bottomEl.innerHTML = "";
+      aboveEl.style.display = "none";
+      midEl.style.display = "none";
+      bottomEl.style.display = "none";
+      if (mapCard) mapCard.style.display = "none";
+      if (!apiKey || !full.length || full.length < 2) return;
       const n = full.length;
-      const samples = 9;
+      const samples = 3;
+      const urls = [];
       for (let i = 0; i < samples; i++) {
         const t = (i + 0.5) / samples;
         const pos = t * (n - 1);
@@ -807,17 +888,29 @@
         const lon = lon0 + frac * (lon1 - lon0);
         const lat = lat0 + frac * (lat1 - lat0);
         const heading = bearingDeg(lat0, lon0, lat1, lon1);
-        // eslint-disable-next-line no-await-in-loop
         const url = await fetchGoogleStreetViewImageForPoint(lat, lon, heading, apiKey);
         if (url) urls.push(url);
       }
-      if (!urls.length) {
-        stripEl.style.display = "none";
-        return;
+      if (urls.length === 0) return;
+      if (mapCard) mapCard.style.display = "block";
+      if (map && routeSegments?.fullGeometry?.length) {
+        map.invalidateSize();
+        const latLngs = routeSegments.fullGeometry.map((c) => [c[1], c[0]]);
+        map.fitBounds(latLngs, { padding: [20, 20] });
       }
-      const parts = urls.map((u) => `<img class="streetview-grid-img" src="${escapeHtml(u)}" alt="Street-level imagery along route">`);
-      parts.push('<div class="streetview-attribution">© Google Street View</div>');
-      stripEl.innerHTML = parts.join("");
+      const imgClass = "streetview-grid-img";
+      if (urls[0]) {
+        aboveEl.innerHTML = `<img class="${imgClass}" src="${escapeHtml(urls[0])}" alt="Street-level imagery along route">`;
+        aboveEl.style.display = "block";
+      }
+      if (urls[1]) {
+        midEl.innerHTML = `<img class="${imgClass}" src="${escapeHtml(urls[1])}" alt="Street-level imagery along route">`;
+        midEl.style.display = "block";
+      }
+      if (urls[2]) {
+        bottomEl.innerHTML = `<img class="${imgClass}" src="${escapeHtml(urls[2])}" alt="Street-level imagery along route"><div class="streetview-attribution">© Google Street View</div>`;
+        bottomEl.style.display = "block";
+      }
     }
 
     async function geocode(q) {
@@ -1179,7 +1272,7 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       if (routeLayer) routeLayer.clearLayers();
       const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
       const drawnLine = jitterRouteLine(smoothRouteLine(downsampleRouteLine(latLngs, 2)));
-      L.polyline(drawnLine, { color: "#fff", weight: 2 }).addTo(routeLayer);
+      L.polyline(drawnLine, { color: "#ffffff", weight: 2 }).addTo(routeLayer);
       waypoints.forEach((wp, i) => {
         const label = wp.name || (i === 0 ? "Start" : `Destination ${i}`);
         L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() }).bindTooltip(label, { permanent: false }).addTo(routeLayer);
@@ -1259,6 +1352,95 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       annotatedEl.innerHTML = buildAnnotatedHtml(userText, highlights || []);
       if (legendEl) legendEl.style.display = highlights && highlights.length ? "flex" : "none";
       if (emptyEl) emptyEl.style.display = "none";
+      applySketchbookLines(annotatedEl);
+    }
+
+    /** Split Step 1 content into lines by fixed word count; wrap each line in a span with random tilt (3–7°) and random width. */
+    function applySketchbookLines(container) {
+      if (!container || !container.childNodes.length) return;
+      const WORDS_PER_LINE = 25;
+      const TILT_MIN = 1.5;
+      const TILT_MAX = 3.5;
+      const WIDTH_MIN_PCT = 92;
+      const WIDTH_MAX_PCT = 100;
+
+      function randomTiltDeg() {
+        const deg = TILT_MIN + Math.random() * (TILT_MAX - TILT_MIN);
+        return Math.random() > 0.5 ? deg : -deg;
+      }
+      function randomWidthPct() {
+        return Math.round(WIDTH_MIN_PCT + Math.random() * (WIDTH_MAX_PCT - WIDTH_MIN_PCT));
+      }
+      function getWords(text) {
+        return (text || "").trim().split(/\s+/).filter(Boolean);
+      }
+
+      const childNodes = Array.from(container.childNodes);
+      const lines = [];
+      let currentLine = [];
+      let currentWordCount = 0;
+
+      for (const node of childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const words = getWords(node.textContent);
+          let i = 0;
+          while (i < words.length) {
+            const spaceLeft = WORDS_PER_LINE - currentWordCount;
+            const take = Math.min(spaceLeft, words.length - i);
+            if (take <= 0) {
+              lines.push(currentLine);
+              currentLine = [];
+              currentWordCount = 0;
+              continue;
+            }
+            const chunk = words.slice(i, i + take);
+            currentLine.push({ type: "words", words: chunk });
+            currentWordCount += chunk.length;
+            i += take;
+            if (currentWordCount >= WORDS_PER_LINE) {
+              lines.push(currentLine);
+              currentLine = [];
+              currentWordCount = 0;
+            }
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const elWords = getWords(node.textContent);
+          const elWordCount = elWords.length;
+          if (currentWordCount + elWordCount > WORDS_PER_LINE && currentLine.length > 0) {
+            lines.push(currentLine);
+            currentLine = [];
+            currentWordCount = 0;
+          }
+          currentLine.push({ type: "node", node });
+          currentWordCount += elWordCount;
+          if (currentWordCount >= WORDS_PER_LINE) {
+            lines.push(currentLine);
+            currentLine = [];
+            currentWordCount = 0;
+          }
+        }
+      }
+      if (currentLine.length > 0) lines.push(currentLine);
+
+      container.innerHTML = "";
+      lines.forEach((segments) => {
+        const lineSpan = document.createElement("span");
+        lineSpan.className = "sketchbook-line";
+        lineSpan.style.transform = `rotate(${randomTiltDeg()}deg)`;
+        lineSpan.style.maxWidth = `${randomWidthPct()}%`;
+        lineSpan.style.display = "block";
+        segments.forEach((seg, idx) => {
+          if (seg.type === "words") {
+            if (idx > 0 && segments[idx - 1].type === "words") {
+              lineSpan.appendChild(document.createTextNode(" "));
+            }
+            lineSpan.appendChild(document.createTextNode(seg.words.join(" ")));
+          } else {
+            lineSpan.appendChild(seg.node);
+          }
+        });
+        container.appendChild(lineSpan);
+      });
     }
 
     function updateStep2FromRoute() {
@@ -1441,7 +1623,7 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
       if (routeLayer) routeLayer.clearLayers();
       const latLngs = fullGeometry.map((c) => [c[1], c[0]]);
       const drawnLine = jitterRouteLine(smoothRouteLine(downsampleRouteLine(latLngs, 2)));
-      L.polyline(drawnLine, { color: "#fff", weight: 2 }).addTo(routeLayer);
+      L.polyline(drawnLine, { color: "#ffffff", weight: 2 }).addTo(routeLayer);
       waypoints.forEach((wp, i) => {
         const label = wp.name || (i === 0 ? "Start" : `Destination ${i}`);
         L.marker([wp.lat, wp.lon], { icon: createMinimalMarkerIcon() })
