@@ -624,6 +624,7 @@
     };
 
     const WS_URL = "ws://127.0.0.1:9000";
+    const OPENAI_PROXY_URL = "http://127.0.0.1:9000/api/openai/chat/completions";
     const statusEl = document.getElementById("status");
     const canvas = document.getElementById("canvas");
     const visualPanel = document.getElementById("visual-panel");
@@ -972,12 +973,11 @@
     }
 
     /** Call 1 – Route only: start, start_label, start_stay_min, destinations, transit_mode. Focused prompt for consistency. */
-    async function extractRouteFromText(text, apiKey) {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    async function extractRouteFromText(text) {
+      const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           model: "gpt-4o",
@@ -1034,12 +1034,11 @@ If the text does not describe a multi-stop route, return start as empty string a
     }
 
     /** Call 2 – Highlights only: same text, focused on highlights with exact substring and examples. */
-    async function extractHighlightsFromText(text, apiKey) {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    async function extractHighlightsFromText(text) {
+      const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           model: "gpt-4o",
@@ -1097,10 +1096,10 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
     }
 
     /** Combined: run route-only and highlights-only calls, then merge. Returns same shape as before for compatibility. */
-    async function extractLocationsFromText(text, apiKey) {
+    async function extractLocationsFromText(text) {
       const [route, highlightsResult] = await Promise.all([
-        extractRouteFromText(text, apiKey),
-        extractHighlightsFromText(text, apiKey)
+        extractRouteFromText(text),
+        extractHighlightsFromText(text)
       ]);
       const highlights = highlightsResult?.highlights ?? [];
       if (!route) return null;
@@ -2095,11 +2094,7 @@ Include every span that clearly matches a type. Omit a type if nothing matches. 
     }
 
     async function analyzeTextToMetrics(text) {
-      const key = await ensureApiKey();
-      if (!key || key === "PASTE_YOUR_OPENAI_API_KEY_HERE") {
-        alert("Add your API key: copy api-key.example.json to api-key.json in this folder and replace the placeholder with your OpenAI key.");
-        return null;
-      }
+      await ensureApiKey();
       const segments = typeof window.__routeSegments === "function" ? window.__routeSegments() : null;
       const agg = aggregateRouteEnv(segments);
       const useRouteFormulas = agg && segments?.legs?.length > 0;
@@ -2174,11 +2169,10 @@ Output only the JSON, no explanation.`;
         ]
       };
 
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(OPENAI_PROXY_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${key}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
       });
@@ -2251,13 +2245,9 @@ Output only the JSON, no explanation.`;
       planBtn.disabled = true;
       planStatus.textContent = "";
       try {
-        const key = await ensureApiKey();
-        if (!key || key === "PASTE_YOUR_OPENAI_API_KEY_HERE") {
-          alert("Add your API key: copy api-key.example.json to api-key.json and add your OpenAI key.");
-          return;
-        }
+        await ensureApiKey();
         planStatus.textContent = "Extracting route from your description…";
-        const extracted = await extractLocationsFromText(text, key);
+        const extracted = await extractLocationsFromText(text);
         updateStep1Annotated(text, extracted ? extracted.highlights : null);
         if (extracted && extracted.start && extracted.destinations && extracted.destinations.length > 0) {
           populateWaypointInputs(extracted.start, extracted.destinations);
